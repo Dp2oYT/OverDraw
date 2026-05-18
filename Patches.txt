@@ -1,0 +1,5 @@
+fixed camera slowly moving up
+
+fixed camera not looking at cards properly
+
+fixed enemy cards to make them look better

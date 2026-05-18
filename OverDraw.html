@@ -1,0 +1,1207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!--Fonts-->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Chokokutai&display=swap" rel="stylesheet">
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Overdraw</title>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: rgb(49, 45, 61); }
+        canvas { display: block; }
+    </style>
+</head>
+
+<!-- Scripts -->
+<script>
+    // check if the page has loaded
+    document.addEventListener("DOMContentLoaded", function() {
+        // to make sure that any in game menus dont go to the title screen.
+        var gamestarted = false;
+        
+        const elem = document.documentElement;
+
+        // main menu buttons
+        const playButton = document.querySelector(".menu-button:nth-child(2)");
+        const settingsButton = document.querySelector(".menu-button:nth-child(3)");
+
+        // OVERDRAW title
+        const O = document.getElementById("O");
+        const V = document.getElementById("V");
+        const E = document.getElementById("E");
+        const R = document.getElementById("R");
+        const D = document.getElementById("D");
+        const RR = document.getElementById("RR");
+        const A = document.getElementById("A");
+        const W = document.getElementById("W");
+
+        // settings
+        const FullscreenButton = document.getElementById("FullscreenButton");
+        const SettingsBackButton = document.getElementById("SettingsBackButton");
+        const ResSettings = document.getElementById("ResSettings")
+        const AntiAliasButton = document.getElementById("Anti-AliasingButton")
+        const MatchScreenRes = document.getElementById("MatchScreenRes")
+
+        // pause menu
+        const Pause = document.getElementById("Pause_Button");
+        const Pause_Menu = document.getElementById("Pause_Menu");
+
+        // escape button functionality
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') {
+                if (gamestarted) {
+                    if (Pause_Menu.style.display == "block") {
+                    Pause_Menu.style.display = "none";
+                    Paused_Text.style.display = "none";
+                    Pause.style.display = "block";
+                }else {
+                    Pause_Menu.style.display = "block";
+                    Paused_Text.style.display = "block";
+                    Pause.style.display = "none";
+                }}; 
+            };
+        });
+
+        // functionality for the pause button
+        Pause.addEventListener("click", function(){
+            if (Pause_Menu.style.display == "block") {
+                Pause_Menu.style.display = "none";
+                Paused_Text.style.display = "none";
+                Pause.style.display = "block";
+            }else {
+                Pause_Menu.style.display = "block";
+                Paused_Text.style.display = "block";
+                Pause.style.display = "none";
+            };
+        });
+        
+        // play button pressed
+        playButton.addEventListener("click", function() {
+            playButton.style.display = "none";
+            settingsButton.style.display = "none";
+            O.style.display = "none";
+            V.style.display = "none";
+            E.style.display = "none";
+            R.style.display = "none";
+            D.style.display = "none";
+            RR.style.display = "none";
+            A.style.display = "none";
+            W.style.display = "none";
+            StartGame();
+        });
+
+        // settings button pressed
+        settingsButton.addEventListener("click", function() {
+            settingsButton.style.display = "none";
+            playButton.style.display = "none";
+            FullscreenButton.style.display = "block";
+            SettingsBackButton.style.display = "block";
+            ResSettings.style.display = "flex";
+            AntiAliasButton.style.display = "block";
+            MatchScreenRes.style.display = "block";
+        });
+        
+
+        // fullscreen setting pressed
+        FullscreenButton.addEventListener("click", function() {
+            if (!document.fullscreen) {
+                elem.requestFullscreen();
+            } else {
+                document.webkitExitFullscreen();
+            }
+        });
+
+        // Settings back button pressed
+        SettingsBackButton.addEventListener("click", function(){
+            FullscreenButton.style.display = "none";
+            SettingsBackButton.style.display = "none";
+            playButton.style.display = "block";
+            settingsButton.style.display = "block";
+            ResSettings.style.display = "none";
+            AntiAliasButton.style.display = "none";
+            MatchScreenRes.style.display = "none";
+        })
+
+        // start the game
+        function StartGame() {
+            gamestarted = true;
+            // declare html constants
+            const playButton = document.querySelector(".menu-button:nth-child(2)");
+            const settingsButton = document.querySelector(".menu-button:nth-child(3)");
+            const game = document.getElementsByClassName("Game");
+            const Paused_Text = document.getElementById("Paused_Text");
+            const btextone = document.getElementById("btext1");
+            const btexttwo = document.getElementById("btext2");
+            const Resume = document.getElementById("Resume_Button");
+            const PauseSettingsButton = document.getElementById("Pause_Settings");
+            const PauseMenuSettings = document.getElementById("Pause_Menu_Settings");
+            const Restart = document.getElementById("Restart_Button");
+            const Leave = document.getElementById("Pause_Leave_Button");
+
+            btextone.style.display = "none";
+            btexttwo.style.display = "none";
+            Pause.style.display = "block";
+            Pause_Menu.style.display = "none";
+            Paused_Text.style.display = "block";
+
+            // Show everything inside the game
+            if (game.length > 0) {
+                game[0].style.display = "block";
+            }
+
+            // functionality for the restart button (need to be done)
+            Restart.addEventListener("click", function(){
+                Pause_Menu.style.display = "none";
+                Paused_Text.style.display = "none";
+                Pause.style.display = "block";
+                
+                // Custom event to trigger the restart in the module script
+                window.dispatchEvent(new CustomEvent('game-restart'));
+            });
+
+            Leave.addEventListener("click", function(){
+                Pause_Menu.style.display = "none";
+
+                if (game.length > 0) {
+                    game[0].style.display = "none";
+                }
+
+                btextone.style.display = "block";
+                btexttwo.style.display = "block";
+                O.style.display = "block";
+                V.style.display = "block";
+                E.style.display = "block";
+                R.style.display = "block";
+                D.style.display = "block";
+                RR.style.display = "block";
+                A.style.display = "block";
+                W.style.display = "block";
+                playButton.style.display = "block";
+                settingsButton.style.display = "block";
+                gamestarted = false;
+                return
+            });
+
+            // Functionality for the resume button
+            Resume.addEventListener("click", function(){
+                Pause_Menu.style.display = "none";
+                Paused_Text.style.display = "none";
+                Pause.style.display = "block";
+            });
+
+            PauseSettingsButton.addEventListener("click", function(){
+                PauseMenuSettings.style.display = "block";
+            });
+
+        }
+    });
+
+</script>
+<!--Import map for the renderer-->
+<script type="importmap">
+        {
+          "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+          }
+        }
+</script>
+<!--Renderer-->
+<script type="module">
+
+// three.js imports
+import * as THREE from 'three';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { TAARenderPass } from 'three/addons/postprocessing/TAARenderPass.js';
+import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+import { CopyShader } from 'three/addons/shaders/CopyShader.js';
+
+const loader = new THREE.TextureLoader();
+
+// settings
+let bloomActive = true;
+
+// camera variables
+const centerAngle = Math.PI / 2;
+const arcRadius = 10;
+let rotationAngle = 0;
+const orbitRadius = 6; // How far away the camera stays from the card
+
+// image for reflections
+const Matcap = loader.load('matcap.png', (texture) => {
+    // filters to blur out image to look higher resolution
+    texture.magFilter = THREE.LinearFilter;
+    texture.minFilter = THREE.LinearMipmapLinearFilter;
+    texture.anisotropy = 8;
+    texture.needsUpdate = true;
+});
+
+// card lists
+const deck = [];
+const cardHand = [];
+const enemyHand = [];
+
+// declare the scene
+window.gamestarted = false;
+const scene = new THREE.Scene();
+scene.background = new THREE.Color('#312d3d'); // Background colour
+const savedData = localStorage.getItem('overdraw_settings');
+
+// declare the camera
+const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
+camera.position.z = 5;
+
+const savedAA = localStorage.getItem('antialias') === 'true';
+
+//declare the renderer
+const renderer = new THREE.WebGLRenderer({
+    antialias: savedAA, 
+    powerPreference: "high-performance" 
+});
+
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(1);
+document.body.appendChild(renderer.domElement);
+
+let composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene, camera));
+
+// bloom, adds lighting effects.
+let bloomPass = new UnrealBloomPass(
+    new THREE.Vector2(window.innerWidth, window.innerHeight), 
+    1.2, 0.4, 0.85
+);
+
+composer.addPass(bloomPass);
+
+// ambient light filter
+const ambientLight = new THREE.AmbientLight(0xffffff, 1.5);
+scene.add(ambientLight);
+
+// spotlight
+const spotLight = new THREE.PointLight(0xffffff, 10); 
+spotLight.position.set(5, 5, 5);
+scene.add(spotLight);
+
+// Make the geometry of the card
+const geometry = new THREE.BoxGeometry(1.3, 2, 0.02);
+const glassGeometry = new THREE.BoxGeometry(1.34, 2.04, 0.06); 
+const cardcolour = 0xd4feff;
+
+// declare the card
+const matcapMaterial = new THREE.MeshMatcapMaterial({ 
+    color: cardcolour, 
+    matcap: Matcap, 
+    transparent: true, 
+    opacity: 0.85, 
+    side: THREE.DoubleSide,
+    depthWrite: true 
+});
+
+const materials = Array(6).fill(matcapMaterial);
+
+// glass material on top of the card material
+const glassMaterial = new THREE.MeshPhysicalMaterial({
+    transmission: 1.0,
+    thickness: 0.5,
+    roughness: 0.15,
+    transparent: true,
+    opacity: 0.4,
+    envMapIntensity: 1.0,
+    depthWrite: false
+});
+
+// make the card
+const card = new THREE.Mesh(geometry, materials);
+const glassShell = new THREE.Mesh(glassGeometry, glassMaterial);
+
+scene.add(card);
+card.add(glassShell);
+
+// enemy player
+const enemyGeometry = new THREE.SphereGeometry(1, 20, 20);
+const enemyMaterial = new THREE.MeshStandardMaterial({ 
+    color: 0xffffff, 
+    emissive: 0xffffff, 
+    emissiveIntensity: 0.2 
+});
+
+const enemy = new THREE.Mesh(enemyGeometry, enemyMaterial);
+
+enemy.position.set(0, -3, -8)
+
+// different numbers give different rotation effects.
+let targetRotation = 3;
+
+// clock
+const clock = new THREE.Clock();
+let totalRotation = 0;
+
+const AntiAliasButton = document.getElementById("Anti-AliasingButton")
+const resSelect = document.getElementById('res-select');
+const MatchScreenResSelect = document.getElementById("MatchScreenResSelect")
+
+let mainRenderPass;
+let taaPass;
+
+function applyAllRenderingSettings() {
+    const baseWidth = parseInt(resSelect.value) || 1920;
+    let ratio = MatchScreenResSelect.value === "window.devicePixelRatio" 
+                ? window.devicePixelRatio 
+                : parseFloat(MatchScreenResSelect.value) || 1;
+
+    const finalWidth = Math.round(baseWidth * ratio);
+    const finalHeight = Math.round((baseWidth / (window.innerWidth / window.innerHeight)) * ratio);
+
+    if (bloomPass) bloomPass.dispose();
+    if (composer) {
+        composer.passes.forEach(pass => { if (pass.dispose) pass.dispose(); });
+        composer.renderTarget1.dispose();
+        composer.renderTarget2.dispose();
+    }
+
+    renderer.setSize(finalWidth, finalHeight, false);
+    
+    const BackgroundHex = 0x312d3d;
+    renderer.setClearColor(BackgroundHex, 1);
+    scene.background = new THREE.Color(BackgroundHex);
+
+    const target = new THREE.WebGLRenderTarget(finalWidth, finalHeight, {
+        format: THREE.RGBAFormat,
+        type: THREE.HalfFloatType
+    });
+
+    composer = new EffectComposer(renderer, target);
+
+    mainRenderPass = new RenderPass(scene, camera);
+    
+    const taaPass = new TAARenderPass(scene, camera);
+    taaPass.enabled = savedAA;
+    mainRenderPass.enabled = !savedAA
+    taaPass.unbiased = true;
+    taaPass.sampleLevel = 2; 
+
+    taaPass.clearColor = BackgroundHex;
+    taaPass.clearAlpha = 1.0;
+    
+    composer.addPass(mainRenderPass);
+    composer.addPass(taaPass);
+
+    bloomPass = new UnrealBloomPass(new THREE.Vector2(finalWidth, finalHeight), 1.2, 0.4, 0.85);
+    composer.addPass(bloomPass);
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+
+    localStorage.setItem('preferred_width', baseWidth);
+    localStorage.setItem('preferred_ratio', MatchScreenResSelect.value);
+}
+
+// Resolution Toggle Listener
+resSelect.addEventListener('change', () => {
+    applyAllRenderingSettings();
+});
+
+// resize game when window is resized
+window.addEventListener("resize", () => {
+    applyAllRenderingSettings();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+window.addEventListener("focus", () => {
+    applyAllRenderingSettings();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+MatchScreenResSelect.addEventListener('change', () => {
+    applyAllRenderingSettings();
+});
+
+AntiAliasButton.addEventListener('click', function(){
+    const currentlyOn = localStorage.getItem('antialias') === 'true';
+    const newState = !currentlyOn;
+    localStorage.setItem('antialias', newState);
+    AntiAliasButton.textContent = newState ? "Anti-Aliasing On" : "Anti-Aliasing Off";
+    applyAllRenderingSettings();
+    location.reload();
+});
+
+window.addEventListener('load', () => {
+    const savedWidth = localStorage.getItem('preferred_width');
+    const savedRatio = localStorage.getItem('preferred_ratio');
+    const SavedAntialias = localStorage.getItem('antialias');
+    
+    if (savedWidth) {
+        resSelect.value = savedWidth;
+    }
+    if (savedRatio) {
+        MatchScreenResSelect.value = savedRatio;
+    }
+
+    if (SavedAntialias) {
+        renderer.antialias = (SavedAntialias === 'true');
+        AntiAliasButton.textContent = renderer.antialias ? "Anti-Aliasing On" : "Anti-Aliasing Off";
+    }
+    
+    applyAllRenderingSettings();
+});
+
+// create the deck
+
+function createDeck(count) {
+    const cardThickness = 0.01;
+    const cardGeometry = new THREE.BoxGeometry(1.3, 2, cardThickness);
+    
+    const numberGeometry = new THREE.PlaneGeometry(1.1, 1.1);
+
+    for (let i = 0; i < count; i++) {
+        const cardValue = Math.floor(Math.random() * 10) + 1;
+        const cardMesh = new THREE.Mesh(cardGeometry, materials);
+
+        const numberMaterial = new THREE.MeshBasicMaterial({
+            map: createNumberTexture(cardValue),
+            transparent: true,
+            side: THREE.DoubleSide,
+            depthWrite: false
+        });
+
+        const numberMesh = new THREE.Mesh(numberGeometry, numberMaterial);
+        numberMesh.position.set(0, 0, 0.011); 
+        cardMesh.add(numberMesh);
+        const spacing = 0.01;
+        const stackHeight = i * spacing;
+        cardMesh.position.set(-4, -5 + stackHeight, 0);
+        cardMesh.rotation.x = Math.PI / 2;
+        cardMesh.rotation.z = Math.PI / 2;
+        cardMesh.userData = { value: cardValue };
+        scene.add(cardMesh);
+        deck.push(cardMesh);
+    }
+}
+
+// rotate the card.
+function animate() {
+    // disable the animation when the game starts
+    if (window.gamestarted == true) return;
+
+    requestAnimationFrame(animate);
+
+    const dt = clock.getDelta();
+    
+    const rotationSpeed = 1.5;
+    rotationAngle += rotationSpeed * dt;
+
+    const tau = Math.PI * 2;
+    rotationAngle = rotationAngle % tau;
+
+    // Spins the camera around the card
+    camera.position.x = orbitRadius * Math.cos(rotationAngle);
+    camera.position.z = orbitRadius * Math.sin(rotationAngle);
+
+    // makes sure the camera is always looking at the card
+    const lerpSpeed = 5.0;
+    const alpha = 1 - Math.exp(-lerpSpeed * dt);
+
+    camera.lookAt(card.position);
+    card.rotation.y += (targetRotation - card.rotation.y) * alpha;
+
+    // render
+    composer.render();
+}
+
+// keep functions running during the game
+function gameanimate() {
+    if (window.gamestarted == false) return;
+    requestAnimationFrame(gameanimate)
+
+    updateHandPositions();
+    updateCameraParallax();
+    updateEnemyHandPositions();
+    CheckPileSize();
+
+    checkHover();
+    composer.render();
+};
+
+// to update hand positions when a card is played or drawed from the deck
+function updateHandPositions() {
+    const deltaTime = clock.getDelta();
+    const cardCount = cardHand.length;
+
+    if (cardCount === 0) return;
+
+    const maxHandWidth = 10;
+    const spacing = Math.min(4, maxHandWidth / Math.max(4, cardCount));
+    const lerpSpeed = 10;
+    const alpha = 1.0 - Math.exp(-lerpSpeed * deltaTime);
+
+    const handDistance = 5 + (cardCount * 0.2); 
+    
+    const fovInRadians = (camera.fov * Math.PI) / 180;
+    const visibleHeight = 1 * Math.tan(fovInRadians / 2) * handDistance * 1.2;
+    const handYOffset = -(visibleHeight / 2); 
+
+    const handArcRadius = 20 / (cardCount / 8);
+    
+    const totalWidth = (cardCount - 1) * spacing;
+
+    cardHand.forEach((card, index) => {
+        if (card.userData.isWiggling || card.userData.isMovingToField || card.userData.isRecycling) return;
+
+        const xPos = (index * spacing) - (totalWidth / 2);
+        const angle = xPos / handArcRadius;
+        
+        const hoverOffset = card.userData.hoverTarget || 0;
+        const targetScale = card.userData.scaleTarget || 1;
+
+        const localX = Math.sin(angle) * handArcRadius;
+        const localY = (Math.cos(angle) * handArcRadius) - handArcRadius + handYOffset + hoverOffset;
+        const localZ = -handDistance + (index * 0.01);
+
+        const targetPos = new THREE.Vector3(localX, localY, localZ);
+        camera.localToWorld(targetPos);
+
+        card.position.lerp(targetPos, alpha);
+        card.scale.lerp(new THREE.Vector3(targetScale, targetScale, targetScale), alpha);
+
+        card.quaternion.copy(camera.quaternion);
+        const tilt = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), -angle);
+        card.quaternion.multiply(tilt);
+    });
+}
+
+function updateEnemyHandPositions() {
+
+    const cardCount = enemyHand.length;
+    const maxHandWidth = 10;
+    const spacing = Math.min(4, maxHandWidth / Math.max(4, cardCount));
+    const lerpSpeed = 10;
+
+    const handDistance = -3 + (cardCount * 0.2); 
+    
+    const fovInRadians = (camera.fov * Math.PI) / 180;
+    const visibleHeight = 1 * Math.tan(fovInRadians / 2) * handDistance * 1.2;
+    const handYOffset = -(visibleHeight / 2) - 2.5; 
+
+    const handArcRadius = 20 / (cardCount / 8);
+    
+    const totalWidth = (cardCount - 1) * spacing;
+
+    enemyHand.forEach((card, index) => {
+	
+	    const deltaTime = clock.getDelta();
+
+        const xPos = (index * spacing) - (totalWidth / 2);
+        const angle = xPos / handArcRadius;
+        
+        const hoverOffset = card.userData.hoverTarget || 0;
+        const targetScale = card.userData.scaleTarget || 1;
+
+        const localX = Math.sin(angle) * handArcRadius;
+        const localY = (Math.cos(angle) * handArcRadius) - handArcRadius + handYOffset + hoverOffset;
+        const localZ = -handDistance + (index * 0.01);
+
+        const targetPos = new THREE.Vector3(localX, localY, localZ);
+	
+	    const alpha = 1.2 - Math.exp(-lerpSpeed * deltaTime);
+        enemy.localToWorld(targetPos);
+
+        card.position.lerp(targetPos, alpha);
+        card.scale.lerp(new THREE.Vector3(targetScale, targetScale, targetScale), alpha);
+
+        card.quaternion.copy(enemy.quaternion);
+        const flip = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI);
+        const tilt = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), -angle);
+        card.quaternion.multiply(flip).multiply(tilt);
+    });
+}
+
+// setup mouse to lift up cards when hovered over
+const mouse = new THREE.Vector2();
+const raycaster = new THREE.Raycaster();
+
+window.addEventListener('mousemove', (event) => {
+    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+});
+
+function updateCameraParallax() {
+    const delta = clock.getDelta();
+    
+    const intensity = 0.5; 
+
+    const centerX = 0;
+    const centerY = 0;
+    const centerZ = 8;
+
+    const targetX = centerX + (mouse.x * intensity);
+    const targetY = centerY + (mouse.y * intensity);
+    const targetPos = new THREE.Vector3(targetX, targetY, centerZ);
+    
+    const lerpSpeed = 5; 
+    let alpha = delta * lerpSpeed;
+
+    alpha = Math.min(Math.max(alpha, 0), 1);
+
+    camera.position.lerp(targetPos, alpha - alpha);
+
+    const baseTilt = -0.5; 
+    camera.rotation.x = baseTilt + (mouse.y * 0.05);
+    camera.rotation.y = -(mouse.x * 0.05);
+}
+
+function checkHover() {
+    raycaster.setFromCamera(mouse, camera);
+    const intersects = raycaster.intersectObjects(cardHand, true);
+
+    hoveredCard = null;
+
+    // Reset all cards' hover state
+    cardHand.forEach(c => {
+        c.userData.hoverTarget = 0; 
+        c.userData.scaleTarget = 1.0;
+    });
+
+    if (intersects.length > 0) {
+        let hoveredObject = intersects[0].object;
+        while (hoveredObject && !cardHand.includes(hoveredObject)) {
+            hoveredObject = hoveredObject.parent;
+        }
+
+        if (hoveredObject) {
+            hoveredObject.userData.hoverTarget = 0.2;
+            hoveredObject.userData.scaleTarget = 1; 
+            hoveredCard = hoveredObject;
+        }
+    }
+}
+
+let LastPlayedCard = 0;
+let hoveredCard = null;
+let PlayingCard = false;
+let PlayedCards = []; // cards that have been played go inside this list
+const playedPosition = new THREE.Vector3(0, -5, 0);
+let PlayerTurn = false; // Check if its the players turn
+
+window.addEventListener('click', () => {
+    if (hoveredCard) {
+        const cardValue = hoveredCard.userData.value;
+        if (cardValue !== undefined) {
+            PlayCard(cardValue, hoveredCard);
+        }
+    }
+});
+
+// function for placing the card
+function PlayCard(value, Card) {
+    if (!PlayerTurn) return;
+    if (PlayingCard) return;
+    PlayingCard = true;
+
+    if (value > LastPlayedCard) {
+        LastPlayedCard = value;
+
+        const cardIndex = cardHand.indexOf(Card);
+        
+        if (cardIndex > -1) {
+            cardHand.splice(cardIndex, 1);
+        }
+
+        MoveCardToField(Card);
+    } else {
+        WiggleCard(Card);
+    };
+};
+
+function CheckPileSize() {
+    if (PlayedCards.length >= 5) {
+
+        PlayedCards.forEach((card, index) => {
+            setTimeout(() => {
+                MoveCardToBottom(card);
+            }, index * 50); 
+        });
+        PlayedCards = [];
+    }
+}
+
+function MoveCardToBottom(card) {
+    card.userData.isRecycling = true;
+
+    const startTime = performance.now();
+    const duration = 800; 
+    
+    const startPos = card.position.clone();
+    const startQuat = card.quaternion.clone();
+
+    const deckX = -4;
+    const deckY = -5.2;
+    const deckZ = 0;
+    
+    const spacing = 0.01;
+    const currentStackHeight = deck.length * spacing;
+    const targetWorldPos = new THREE.Vector3(deckX, deckY + currentStackHeight, deckZ);
+
+    const targetQuat = new THREE.Quaternion();
+    const deckRotation = new THREE.Euler(Math.PI / 2, 0, Math.PI / 2); 
+    targetQuat.setFromEuler(deckRotation);
+
+    function animate(currentTime) {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        
+        const ease = progress === 0 ? 0 : Math.pow(2, 10 * progress - 10);
+
+        card.position.lerpVectors(startPos, targetWorldPos, ease);
+        card.quaternion.slerpQuaternions(startQuat, targetQuat, ease);
+
+        if (progress < 1) {
+            requestAnimationFrame(animate);
+        } else {
+            card.userData.isRecycling = false;
+
+            const cardGeometry = new THREE.BoxGeometry(1.3, 2, 0.01);
+            const numberGeometry = new THREE.PlaneGeometry(1.1, 1.1);
+            
+            for (let i = 0; i < 1; i++) {
+                const cardValue = card.value;
+                const cardMesh = new THREE.Mesh(cardGeometry, materials);
+
+                const numberMaterial = new THREE.MeshBasicMaterial({
+                    map: createNumberTexture(cardValue),
+                    transparent: true,
+                    side: THREE.DoubleSide,
+                    depthWrite: false
+                });
+
+                const numberMesh = new THREE.Mesh(numberGeometry, numberMaterial);
+                numberMesh.position.set(0, 0, 0.011); 
+                cardMesh.add(numberMesh);
+                const spacing = 0.01;
+                const stackHeight = deck.length * spacing;
+                cardMesh.position.set(-4, -5 + stackHeight, 0);
+                cardMesh.rotation.x = Math.PI / 2;
+                cardMesh.rotation.z = Math.PI / 2;
+                cardMesh.userData = { value: cardValue };
+                scene.add(cardMesh);
+                deck.push(cardMesh);
+            }
+            scene.remove(card);
+            LastPlayedCard = 0;
+        }
+    }
+    requestAnimationFrame(animate);
+}
+
+// check if your turn has ended automatically
+function CheckTurnEnd() {
+    const bestCard = cardHand.reduce((prev, current) => {
+        return (prev.userData.value > current.userData.value) ? prev : current;
+    });
+    
+    if (bestCard <= LastPlayedCard) {
+        ChangeTurn();
+    };
+};
+
+function MoveCardToField(card) {
+
+    const stackOffset = PlayedCards.length * 0.04;
+    card.userData.isMovingToField = true;
+    PlayedCards.push(card);
+
+    const startTime = performance.now();
+    const duration = 700;
+    
+    const startPos = card.position.clone();
+    const startQuat = card.quaternion.clone();
+
+    const targetWorldPos = playedPosition.clone().add(new THREE.Vector3(stackOffset, stackOffset, 0));
+
+    const targetQuat = new THREE.Quaternion();
+    targetQuat.setFromEuler(new THREE.Euler(-Math.PI / 2, 0, 0));
+
+    function animate(currentTime) {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const ease = 1 - Math.pow(1 - progress, 3);
+
+        card.position.lerpVectors(startPos, targetWorldPos, ease);
+        card.quaternion.slerpQuaternions(startQuat, targetQuat, ease);
+
+        if (progress < 1) {
+            requestAnimationFrame(animate);
+        } else {
+            card.userData.isMovingToField = false;
+            PlayingCard = false; 
+        }
+    }
+
+    requestAnimationFrame(animate);
+}
+
+function WiggleCard(card) {
+    if (card.userData.isWiggling) return;
+    card.userData.isWiggling = true;
+    
+    const startTime = performance.now();
+    const duration = 500; 
+    const intensity = 0.2;
+    
+    const startQuaternion = card.quaternion.clone();
+
+    function animate(currentTime) {
+        const elapsed = currentTime - startTime;
+        const progress = elapsed / duration;
+
+        if (progress < 1) {
+            const wiggleAmount = Math.sin(progress * Math.PI * 4) * intensity * (1 - progress);
+            
+            const wiggleQuaternion = new THREE.Quaternion().setFromAxisAngle(
+                new THREE.Vector3(0, 0, 1), 
+                wiggleAmount
+            );
+            
+            card.quaternion.copy(startQuaternion).multiply(wiggleQuaternion);
+
+            requestAnimationFrame(animate);
+        } else {
+            card.quaternion.copy(startQuaternion);
+            card.userData.isWiggling = false;
+            PlayingCard = false;
+        }
+    }
+    requestAnimationFrame(animate);
+}
+
+// draw card for the player
+function drawCard() {
+    // make sure that there is a card in the deck to draw from
+    if (deck.length === 0) return;
+
+    // Get the top card from the deck
+    const cardToDraw = deck.pop();
+
+    scene.attach(cardToDraw);
+
+    // Add to the hand
+    cardHand.push(cardToDraw);
+}
+
+// draw card for the enemy
+function enemyDrawCard() {
+    if (deck.length === 0) return;
+
+    const cardToDraw = deck.pop();
+
+    scene.attach(cardToDraw);
+
+    enemyHand.push(cardToDraw);
+};
+
+// create the number for the card
+function createNumberTexture(number) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 256;
+    canvas.height = 256;
+    const ctx = canvas.getContext('2d');
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // text
+    ctx.fillStyle = 'black';
+    ctx.font = '700 250px "Bebas Neue"'; 
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    ctx.shadowColor = 'rgb(0 ,0 ,0 )';
+    ctx.shadowBlur = 0;
+
+    ctx.fillText(number, canvas.width / 2, canvas.height / 2);
+
+    const texture = new THREE.CanvasTexture(canvas);
+    return texture;
+}
+
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+// make the cards draw one by one
+async function drawOpeningHand() {
+    for (let i = 0; i < 6; i++) {
+        enemyDrawCard();
+        drawCard();
+        await sleep(150); 
+    }
+}
+
+document.addEventListener("DOMContentLoaded", function() {
+
+    // constants
+    const playButton = document.querySelector(".menu-button:nth-child(2)");
+    AntiAliasButton.textContent = savedAA ? "Anti-Aliasing On" : "Anti-Aliasing Off";
+    const Leave = document.getElementById("Pause_Leave_Button");
+
+    // check if the play button has been pressed to delete the main menu scene.
+    playButton.addEventListener('click', function() {
+
+        // declare variables
+        PlayerTurn = true;
+        window.gamestarted = true;
+
+        // create scene objects
+        scene.remove(card);
+        scene.add(enemy);
+        createDeck(40);
+        
+        // camera
+        camera.position.set(0, -1, 8);
+        camera.lookAt(0, -13, -6);
+
+        // functions
+        gameanimate();
+        drawOpeningHand();
+        CheckTurnEnd();
+    });
+
+    // Cleanup function for cards
+    const destroyCards = () => {
+        const destroyCard = (cardMesh) => {
+            while(cardMesh.children.length > 0){
+                const child = cardMesh.children[0];
+                if (child.geometry) child.geometry.dispose();
+                if (child.material) {
+                    if (child.material.map) child.material.map.dispose();
+                    child.material.dispose();
+                }
+                cardMesh.remove(child);
+            };
+            if (cardMesh.geometry) cardMesh.geometry.dispose();
+            scene.remove(cardMesh);
+        };
+
+        cardHand.forEach(destroyCard);
+        enemyHand.forEach(destroyCard)
+        deck.forEach(destroyCard);
+        PlayedCards.forEach(destroyCard)
+        enemyHand.length = 0;
+        cardHand.length = 0;
+        deck.length = 0;
+        LastPlayedCard = 0;
+    };
+
+    // Restart button logic
+    window.addEventListener('game-restart', async function() {
+        destroyCards();
+        createDeck(40);
+        await drawOpeningHand();
+    });
+
+    // add the scene when they go back to the menu
+    Leave.addEventListener('click', function() {
+        PlayerTurn = false;
+        window.gamestarted = false;
+        card.remove();
+        scene.remove(enemy);
+        scene.add(card);
+        card.add(glassShell);
+        destroyCards();
+        animate();
+    });
+
+});
+
+if (window.gamestarted == true) gameanimate();
+animate();
+
+</script>
+<!--body-->
+<body class="Title_Screen"> <!--Title Screen-->
+    <div> <!--Overdraw title-->
+        <h1 id="O", class="title" style="left: 0px;">O</h1>
+        <h1 id="V", class="title" style="left: 30px;">v</h1>
+        <h1 id="E", class="title" style="left: 60px;">e</h1>
+        <h1 id="R", class="title" style="left: 90px;">r</h1>
+        <h1 id="D", class="title" style="left: 120px;">d</h1>
+        <h1 id="RR", class="title" style="left: 150px;">r</h1>
+        <h1 id="A", class="title" style="left: 180px;">a</h1>
+        <h1 id="W", class="title" style="left: 210px;">w</h1>
+    </div>
+    <!--Buttons-->
+    <button class="menu-button">Play</button>
+    <button style="Bottom: 325px" class="menu-button">Settings</button>
+    
+    <!--Bottom Text-->
+    <p class="B-text" id="btext1">This game was designed by Dp2o</p>
+    <p class="B-text" id="btext2" style="left: 260px;">- - Version 1.01</p>
+    
+    <div class="Setting-Menu"> <!--Settings-->
+
+        <!--Back Button-->
+        <button style="bottom: 375px;" id="SettingsBackButton", class="Setting-Btn">Back</button>
+
+        <!--Fullscreen toggle-->
+        <button id="FullscreenButton", class="Setting-Btn">Fullscreen Toggle</button>
+
+        <!--Resolution-->
+        <div style="display: none;" id="ResSettings" class="ResSettings-Container">
+            <select id="res-select" class="Setting-Select">
+                <option value="18">10p (Absolute Minimum)</option>
+                <option value="160">90p (low)</option>
+                <option value="320">180p </option>
+                <option value="426">240p </option>
+                <option value="747">420p</option>
+                <option value="1280">720p (medium)</option>
+                <option value="1920" selected>1080p</option>
+                <option value="2560">1440p</option>
+                <option value="3840">4K</option>
+                <option value="7680">8K (ultra)</option>
+            </select>
+        </div>
+
+        <!--Right of back button-->
+        <button style="display: none; left: 240px; bottom: 375px;" id="Anti-AliasingButton" class="Setting-Btn">Anti-Aliasing Toggle</button>
+        <div style="display: none; left: 240px; bottom: 215px;" id="MatchScreenRes" class="ResSettings-Container">
+            <select id="MatchScreenResSelect" class="Setting-Select">
+                <option value="0.2">0.2x</option>
+                <option value="0.5">0.5x</option>
+                <option value="1">1x</option>
+                <option value="2">2x</option>
+                <option value="3">3x</option>
+                <option value="4">4x</option>
+                <option value="5">5x</option>
+                <option value="7">7x</option>
+                <option value="10">10x</option>
+                <option value="15">15x</option>
+                <option value="20">20x</option>
+                <option value="30">30x</option>
+                <option value="window.devicePixelRatio">Screen Ratio</option>
+            </select>
+        </div>
+    </div>
+
+    <!--Game-->
+    <div style="display: none;" class="Game">
+        <button id="Pause_Button" class="Pause_Button">
+             <img class="Pause_img" src="pause.png">
+        </button>
+    </div>
+
+    <!--Pause Menu-->
+    <div style="display: none;" id="Pause_Menu" class="Pause_Menu">
+
+        <!--Heading-->
+        <h1 style="display: none;" id="Paused_Text" class="Paused_Text">Game Paused</h1>
+
+        <!--Buttons-->
+        <button id="Resume_Button" class="Pause_Menu_Button">Resume</button>
+        <button id="Restart_Button" class="Pause_Menu_Button" style="bottom: 430px;">Restart</button>
+        <button id="Pause_Settings" class="Pause_Menu_Button" style="bottom: 360px;">Settings</button>
+        <button id="Pause_Leave_Button" class="Pause_Menu_Button" style="bottom: 290px;">Leave</button>
+
+        <!--Pause Menu Settings-->
+        <div id="Pause_Menu_Settings" class="Pause_Menu_Settings">
+            <h1 class="Pause_Settings_Title">Settings</h1>
+            <button class="Pause_Settings_Button" id="Pause_Fullscreen">Fullscreen Toggle</button>
+        </div>
+    </div>
+</body>
+<style>
+/*variables*/
+    :root {
+        --Background: rgb(49, 45, 61);
+        --ButtonColour: rgb(22, 22, 22);
+        --ButtonHover: rgb(53, 53, 53);
+        --ButtonActive: rgb(35, 35, 35);
+        --ButtonText: rgb(255, 255, 255);
+        --ShadowColour: rgb(0, 0, 0);
+        --ShadowLight: rgba(255, 255, 255, 0.498);
+        --Transparent: rgba(0, 0, 0, 0);
+        --MenuOverlay: rgba(0, 0, 0, 0.395);
+        --MenuBorder: rgba(0, 0, 0, 0.694);
+        --TransitionSpeed: 0.04s;
+    }
+
+    /* make so you cant select text */
+    * :not(.B-text) { user-select: none; }
+
+    /* background */
+    body { margin: 0; background-color: var(--Background); }
+
+    /* title*/
+    .title { font-family: "Bebas Neue", system-ui; color: var(--Transparent);
+        text-shadow: 2px 2px 0px var(--ShadowColour), 3px 4px 0px var(--ShadowLight);
+        font-weight: bold; font-style: normal; position: absolute; background: none; text-align: left;
+        margin-left: 30px; bottom: 375px; font-size: 70px; 
+        transition: all var(--TransitionSpeed) ease-in-out; }
+    .title:hover { font-size: 72px; color: var(--ButtonColour); }
+
+    /* menu buttons */
+    .menu-button { position: absolute; bottom: 375px; left: 30px; width: 200px; height: 40px; background: var(--ButtonColour);
+        border-radius: 10px; border: 1px solid var(--ShadowColour); color: var(--ButtonText); font-family: "Bebas Neue", system-ui;
+        font-weight: bold; font-style: normal; font-size: 20px;
+        transition: all var(--TransitionSpeed) ease-in-out; }
+    
+    /* bottom text */
+    .B-text { user-select: text; position: absolute; bottom: 10px; left: 40px; color: var(--ButtonText); text-shadow: 10px; }
+
+    /* menu button animations */
+    .menu-button:hover { background: var(--ButtonHover); color: var(--ButtonText); width: 205px; }
+    .menu-button:active { background: var(--ButtonColour); color: var(--ButtonText); width: 200px; }
+
+    /* buttons in settings */
+    .Setting-Btn { display: none; position: absolute; bottom: 325px; left: 30px; width: 200px; height: 40px;
+        background: var(--ButtonColour); border-radius: 10px; border: 1px solid var(--ShadowColour); color: var(--ButtonText);
+        font-family: "Bebas Neue", system-ui; font-weight: bold; font-style: normal; font-size: 20px;
+        transition: all var(--TransitionSpeed) ease-in-out; }
+    .Setting-Btn:hover { background: var(--ButtonHover); color: var(--ButtonText); width: 205px; }
+    .Setting-Btn:active { background: var(--ButtonColour); color: var(--ButtonText); width: 200px; }
+
+    /* resolution settings */
+    .ResSettings { display: none; position: absolute; flex-direction: column; bottom: 215px; left: 30px; width: 200px;
+        font-family: "Bebas Neue", system-ui; gap: 5px; }
+    .ResSettings-Container { display: none; flex-direction: column; position: absolute; bottom: 215px; left: 30px; width: 200px;}
+    .ResSettings option { background: var(--ButtonColour); color: var(--ButtonText); }
+    .ResSettings label { color: var(--ButtonText); font-size: 14px; letter-spacing: 1px; margin-left: 5px; }
+
+    /*Setting dropdown menu*/
+    .Setting-Select { width: 100%; height: 40px; background: var(--ButtonColour); border-radius: 10px; border: 2px solid var(--ShadowColour);
+        color: var(--ButtonText); font-family: "Bebas Neue", system-ui; font-weight: bold; font-size: 20px; padding: 0 10px;
+        cursor: pointer; outline: none; transition: background var(--TransitionSpeed); }
+    .Setting-Select:hover { background: var(--ButtonActive); }
+    .Setting-Select option { background: var(--ButtonColour); color: var(--ButtonText); }
+    
+    /* Game */
+    .Pause_img { width: 30px; height: 30px; transition: opacity var(--TransitionSpeed); }
+    .Pause_Button { background-color: var(--Transparent); position: absolute; cursor: pointer; border: 0px; left: 5px; top: 10px; }
+    .Pause_Button:hover .Pause_img { opacity: 0.5; filter: brightness(1.1) contrast(0.9) saturate(0.8); }
+
+    /* Pause Menu */
+    .Pause_Menu { position: absolute; width: 70vw; height: calc(100vh - 6px); opacity: 0.8; left: 150px; border-radius: 15px;
+        background: var(--MenuOverlay); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(5px);
+        border: 1px solid var(--MenuBorder); box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37); }
+    .Paused_Text { font-family: "Bebas Neue", system-ui; position: absolute; top: -50px; left: 260px; color: var(--Transparent);
+        text-shadow: 2px 2px 0px var(--ShadowColour), 3px 4px 0px var(--ShadowLight); font-weight: bold; font-style: normal;
+        background: none; font-size: 70px; }
+    .Pause_Menu_Button { position: absolute; bottom: 500px; left: 30px; width: 300px; height: 60px; background: var(--ButtonColour);
+        border-radius: 10px; border: 1px solid var(--ShadowColour); color: var(--ButtonText); font-family: "Bebas Neue", system-ui;
+        font-weight: bold; font-style: normal; font-size: 20px;
+        transition: all var(--TransitionSpeed) ease-in-out; }
+    .Pause_Menu_Button:hover { background: var(--ButtonHover); color: var(--ButtonText); width: 305px; }
+    
+    .Pause_Menu_Settings { display: block; position: absolute; top: 90px; width: 40vw; height: calc(85vh - 6px); opacity: 0.8;
+        left: 350px; border-radius: 15px; background: var(--MenuOverlay); backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(5px); border: 1px solid var(--MenuBorder);
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37); }
+    .Pause_Settings_Title { position: absolute; color: var(--ButtonText); font-family: "Bebas Neue", system-ui; font-weight: bold;
+        font-style: normal; font-size: 50px; top: -30px; left: 160px; }
+    .Pause_Settings_Button { position: absolute; top: 100px; left: 30px; width: 200px; height: 45px; background: var(--ButtonColour);
+        border-radius: 10px; border: 1px solid var(--ShadowColour); color: var(--ButtonText); font-family: "Bebas Neue", system-ui;
+        font-weight: bold; font-style: normal; font-size: 20px;
+        transition: all var(--TransitionSpeed) ease-in-out; }    
+    .Pause_Settings_Button:hover { background: var(--ButtonHover); color: var(--ButtonText); width: 210px; }
+</style>
+</html>
