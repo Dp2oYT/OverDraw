@@ -14,7 +14,6 @@
         canvas { display: block; }
     </style>
 </head>
-
 <!-- Scripts -->
 <script>
     // check if the page has loaded
@@ -25,8 +24,11 @@
         const elem = document.documentElement;
 
         // main menu buttons
-        const playButton = document.querySelector(".menu-button:nth-child(2)");
-        const settingsButton = document.querySelector(".menu-button:nth-child(3)");
+        const playButton = document.getElementById("PlayButton");
+        const settingsButton = document.getElementById("SettingsButton");
+        const CreditsButton = document.getElementById("CreditsButton");
+
+        playButton.disabled = true;
 
         // OVERDRAW title
         const O = document.getElementById("O");
@@ -41,9 +43,11 @@
         // settings
         const FullscreenButton = document.getElementById("FullscreenButton");
         const SettingsBackButton = document.getElementById("SettingsBackButton");
-        const ResSettings = document.getElementById("ResSettings")
-        const AntiAliasButton = document.getElementById("Anti-AliasingButton")
-        const MatchScreenRes = document.getElementById("MatchScreenRes")
+        const ResSettings = document.getElementById("ResSettings");
+        const AntiAliasButton = document.getElementById("Anti-AliasingButton");
+        const MatchScreenRes = document.getElementById("MatchScreenRes");
+        const ColourPicker = document.getElementById("Colour-Picker");
+        const ColourContainer = document.getElementById("Colour-Container");
 
         // pause menu
         const Pause = document.getElementById("Pause_Button");
@@ -86,6 +90,7 @@
         
         // play button pressed
         playButton.addEventListener("click", function() {
+            CreditsButton.style.display = "none";
             playButton.style.display = "none";
             settingsButton.style.display = "none";
             O.style.display = "none";
@@ -101,6 +106,7 @@
 
         // settings button pressed
         settingsButton.addEventListener("click", function() {
+            CreditsButton.style.display = "none";
             settingsButton.style.display = "none";
             playButton.style.display = "none";
             FullscreenButton.style.display = "block";
@@ -108,6 +114,9 @@
             ResSettings.style.display = "flex";
             AntiAliasButton.style.display = "block";
             MatchScreenRes.style.display = "block";
+            ColourContainer.style.display = "block";
+            ColourContainer.style.visibility = "visible";
+            ColourPicker.style.display = "block";
         });
         
 
@@ -122,6 +131,7 @@
 
         // Settings back button pressed
         SettingsBackButton.addEventListener("click", function(){
+            CreditsButton.style.display = "block";
             FullscreenButton.style.display = "none";
             SettingsBackButton.style.display = "none";
             playButton.style.display = "block";
@@ -129,14 +139,15 @@
             ResSettings.style.display = "none";
             AntiAliasButton.style.display = "none";
             MatchScreenRes.style.display = "none";
+            ColourContainer.style.display = "none";
         })
 
         // start the game
         function StartGame() {
             gamestarted = true;
             // declare html constants
-            const playButton = document.querySelector(".menu-button:nth-child(2)");
-            const settingsButton = document.querySelector(".menu-button:nth-child(3)");
+            const playButton = document.getElementById("PlayButton");
+            const settingsButton = document.getElementById("SettingsButton");
             const game = document.getElementsByClassName("Game");
             const Paused_Text = document.getElementById("Paused_Text");
             const btextone = document.getElementById("btext1");
@@ -210,40 +221,37 @@
 </script>
 <!--Import map for the renderer-->
 <script type="importmap">
-        {
-          "imports": {
-            "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
-            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
-          }
-        }
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.171.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.171.0/examples/jsm/",
+    "three/webgpu": "https://cdn.jsdelivr.net/npm/three@0.171.0/build/three.webgpu.js",
+    "three/tsl": "https://cdn.jsdelivr.net/npm/three@0.171.0/build/three.tsl.js"
+  }
+}
 </script>
 <!--Renderer-->
 <script type="module">
 
 // imports
-import * as THREE from 'three';
-import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
-import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
-import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
-import { TAARenderPass } from 'three/addons/postprocessing/TAARenderPass.js';
-import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
-import { CopyShader } from 'three/addons/shaders/CopyShader.js';
+import * as THREE from 'three/webgpu';
+import { pass } from 'three/tsl';
+import { bloom } from 'three/addons/tsl/display/BloomNode.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 const loader = new THREE.TextureLoader();
+const gltfloader = new GLTFLoader();
 
 // settings
-let bloomActive = true;
-let Difficulty = 1;
+let Difficulty = 3;
 
 // camera variables
-const centerAngle = Math.PI / 2;
 const arcRadius = 10;
 let rotationAngle = 0;
 const orbitRadius = 6; // How far away the camera stays from the card
 
 // image for reflections
-const Matcap = loader.load('matcaplow.png' /* matcap image */, (texture) => {
-    // filters to blur out image to look higher resolution
+const Matcap = loader.load('Matcaps/matcap.png', (texture) => {
     texture.magFilter = THREE.LinearFilter;
     texture.minFilter = THREE.LinearFilter;
     texture.wrapS = THREE.ClampToEdgeWrapping;
@@ -259,56 +267,63 @@ const enemyHand = [];
 // declare the scene
 window.gamestarted = false;
 const scene = new THREE.Scene();
-scene.background = new THREE.Color('#312d3d'); // Background colour
-const savedData = localStorage.getItem('overdraw_settings');
+scene.background = new THREE.Color('#312d3d');
+
+// play button
+const playButton = document.getElementById("PlayButton");
+
+let table = null; // declare table to prevent any errors
 
 // declare the camera
 const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
 camera.position.z = 5;
 
-const savedAA = localStorage.getItem('antialias') === 'true'; // grab antialiasing settings property
+const savedAA = localStorage.getItem('antialias') === 'true';
 
-//declare the renderer
-const renderer = new THREE.WebGLRenderer({
-    antialias: savedAA, 
-    powerPreference: "high-performance" 
-});
+let renderer;
+let postProcessing;
+let scenePassNode;
+let bloomNode;
 
-renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setPixelRatio(1); // default ratio, changes later in settings
-document.body.appendChild(renderer.domElement);
+async function initRenderer() {
+    renderer = new THREE.WebGPURenderer({
+        antialias: savedAA,
+        powerPreference: "high-performance"
+    });
+    await renderer.init();
 
-let composer = new EffectComposer(renderer);
-composer.addPass(new RenderPass(scene, camera));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(1); // default ratio, changed later in settings
+    document.body.appendChild(renderer.domElement);
 
-// bloom, adds lighting effects.
-let bloomPass = new UnrealBloomPass(
-    new THREE.Vector2(window.innerWidth, window.innerHeight), 
-    1.2, 0.4, 0.85
-);
+    postProcessing = new THREE.PostProcessing(renderer);
 
-composer.addPass(bloomPass);
+    scenePassNode = pass(scene, camera);
+    bloomNode = bloom(scenePassNode, 1.2, 0.4, 0.85); // strength, radius, threshold
+
+    postProcessing.outputNode = scenePassNode.add(bloomNode);
+}
 
 // ambient light filter
 const ambientLight = new THREE.AmbientLight(0xffffff, 1.5);
 scene.add(ambientLight);
 
 // spotlight
-const spotLight = new THREE.PointLight(0xffffff, 10); 
+const spotLight = new THREE.PointLight(0xffffff, 10);
 spotLight.position.set(5, 5, 5);
 scene.add(spotLight);
 
 // Make the geometry of the card
 const geometry = new THREE.BoxGeometry(1.3, 2, 0.02);
-const glassGeometry = new THREE.BoxGeometry(1.34, 2.04, 0.06); 
-const cardcolour = 0xd4feff;
+const glassGeometry = new THREE.BoxGeometry(1.34, 2.04, 0.06);
+const cardcolour = 0xd4feff; //0xd4feff main colour
 
 // declare the card
-let matcapMaterial = new THREE.MeshMatcapMaterial({ 
-    color: cardcolour, 
-    matcap: Matcap, 
-    transparent: true, 
-    opacity: 0.9, 
+let matcapMaterial = new THREE.MeshMatcapMaterial({
+    color: cardcolour,
+    matcap: Matcap,
+    transparent: true,
+    opacity: 0.4,
     side: THREE.DoubleSide,
     depthWrite: true
 });
@@ -320,7 +335,7 @@ let glassMaterial = new THREE.MeshPhysicalMaterial({
     transmission: 1.0,
     thickness: 0.5,
     roughness: 0.15,
-    transparent: false,
+    transparent: true,
     opacity: 0.4,
     envMapIntensity: 1.0,
     depthWrite: false
@@ -330,100 +345,63 @@ let glassMaterial = new THREE.MeshPhysicalMaterial({
 const card = new THREE.Mesh(geometry, materials);
 const glassShell = new THREE.Mesh(glassGeometry, glassMaterial);
 
+const enableshell = false; 
+
 scene.add(card);
-card.add(glassShell);
+if (enableshell) card.add(glassShell);
 
 // enemy player
 const enemyGeometry = new THREE.SphereGeometry(1, 20, 20);
-const enemyMaterial = new THREE.MeshStandardMaterial({ 
-    color: 0xffffff, 
-    emissive: 0xffffff, 
-    emissiveIntensity: 0.2 
+const enemyMaterial = new THREE.MeshStandardMaterial({
+    color: 0xffffff,
+    emissive: 0xffffff,
+    emissiveIntensity: 0.2
 });
 
 const enemy = new THREE.Mesh(enemyGeometry, enemyMaterial);
-
-enemy.position.set(0, -3, -8)
-
+enemy.position.set(0, -3, -8);
 enemy.visible = false;
 
-// different numbers give different rotation effects.
 let targetRotation = 3;
 
-// clock
 const clock = new THREE.Clock();
-let totalRotation = 0;
 
-const AntiAliasButton = document.getElementById("Anti-AliasingButton")
 const resSelect = document.getElementById('res-select');
-const MatchScreenResSelect = document.getElementById("MatchScreenResSelect")
-
-let mainRenderPass;
-let taaPass;
+const MatchScreenResSelect = document.getElementById("MatchScreenResSelect");
+const AntiAliasButton = document.getElementById("Anti-AliasingButton");
 
 let lastTime = performance.now();
 let frames = 0;
 let fps = 0;
 
 function applyAllRenderingSettings() {
+    if (!renderer) return;
+
     const baseWidth = parseInt(resSelect.value) || 1920;
-    let ratio = MatchScreenResSelect.value === "window.devicePixelRatio" 
-                ? window.devicePixelRatio 
-                : parseFloat(MatchScreenResSelect.value) || 1;
+    let ratio = MatchScreenResSelect.value === "window.devicePixelRatio"
+        ? window.devicePixelRatio
+        : parseFloat(MatchScreenResSelect.value) || 1;
 
     const finalWidth = Math.round(baseWidth * ratio);
     const finalHeight = Math.round((baseWidth / (window.innerWidth / window.innerHeight)) * ratio);
 
-    if (bloomPass) bloomPass.dispose();
-    if (composer) {
-        composer.passes.forEach(pass => { if (pass.dispose) pass.dispose(); });
-        composer.renderTarget1.dispose();
-        composer.renderTarget2.dispose();
-    }
-
     renderer.setSize(finalWidth, finalHeight, false);
-    
+
     const BackgroundHex = 0x312d3d;
     renderer.setClearColor(BackgroundHex, 1);
     scene.background = new THREE.Color(BackgroundHex);
 
-    // Use high quality rendering for both menu and game
-    const targetType = THREE.HalfFloatType;
-    const target = new THREE.WebGLRenderTarget(finalWidth, finalHeight, {
-        format: THREE.RGBAFormat,
-        type: targetType
-    });
-
-    composer = new EffectComposer(renderer, target);
-
-    mainRenderPass = new RenderPass(scene, camera);
-    
-    if (savedAA) {
-        const taaPass = new TAARenderPass(scene, camera);
-        taaPass.enabled = true;
-        mainRenderPass.enabled = false;
-        taaPass.unbiased = true;
-        taaPass.sampleLevel = 2; 
-
-        taaPass.clearColor = BackgroundHex;
-        taaPass.clearAlpha = 1.0;
-        
-        composer.addPass(mainRenderPass);
-        composer.addPass(taaPass);
-    } else {
-        mainRenderPass.enabled = true;
-        composer.addPass(mainRenderPass);
-    }
-
-    bloomPass = new UnrealBloomPass(new THREE.Vector2(finalWidth, finalHeight), 1.2, 0.4, 0.85);
-    
     // Reduce bloom quality on main menu for better FPS
-    if (!window.gamestarted) {
-        bloomPass.strength = 1; 
-        bloomPass.radius = 0.1; 
+    if (bloomNode) {
+        if (!window.gamestarted) {
+            bloomNode.strength.value = 0.2;
+            bloomNode.radius.value = 0.1;
+        } else {
+            bloomNode.strength.value = 0.1;
+            bloomNode.radius.value = 0.3;
+        }
     }
-    
-    composer.addPass(bloomPass);
+
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
 
@@ -431,52 +409,76 @@ function applyAllRenderingSettings() {
     localStorage.setItem('preferred_ratio', MatchScreenResSelect.value);
 }
 
-// Resolution Toggle Listener
+playButton.disabled = true;
+
 resSelect.addEventListener('change', () => {
     applyAllRenderingSettings();
 });
 
-// resize game when window is resized
 window.addEventListener("resize", () => {
     applyAllRenderingSettings();
-    renderer.setSize(window.innerWidth, window.innerHeight);
+    if (renderer) renderer.setSize(window.innerWidth, window.innerHeight);
 });
 
 window.addEventListener("focus", () => {
     applyAllRenderingSettings();
-    renderer.setSize(window.innerWidth, window.innerHeight);
+    if (renderer) renderer.setSize(window.innerWidth, window.innerHeight);
 });
+
+// change the color of the using the coloris colour picker
+document.addEventListener('coloris:pick', event => {
+    const hexVal = event.detail.color;
+    const customHex = parseInt(hexVal.replace('#', '0x'));
+    localStorage.setItem('Cardhex', customHex);
+    matcapMaterial.color.setHex(customHex);
+
+    scene.traverse((object) => {
+        if (!object.name) {
+            object.material = matcapMaterial;
+            object.material.needsUpdate = true;
+        };
+    });
+});
+
 
 MatchScreenResSelect.addEventListener('change', () => {
     applyAllRenderingSettings();
 });
 
-AntiAliasButton.addEventListener('click', function(){
+AntiAliasButton.addEventListener('click', function () {
     const currentlyOn = localStorage.getItem('antialias') === 'true';
     const newState = !currentlyOn;
     localStorage.setItem('antialias', newState);
     AntiAliasButton.textContent = newState ? "Anti-Aliasing On" : "Anti-Aliasing Off";
-    applyAllRenderingSettings();
+    // antialias is a constructor-time flag on WebGPURenderer, so it needs a reload
     location.reload();
 });
+
+const colorInput = document.getElementById('Color-Picker');
 
 window.addEventListener('load', () => {
     const savedWidth = localStorage.getItem('preferred_width');
     const savedRatio = localStorage.getItem('preferred_ratio');
-    const SavedAntialias = localStorage.getItem('antialias');
-    
-    if (savedWidth) {
-        resSelect.value = savedWidth;
-    }
-    if (savedRatio) {
-        MatchScreenResSelect.value = savedRatio;
-    }
+    const cardColour = localStorage.getItem('Cardhex')
+    const colorInput = document.getElementById('colorInput');
 
-    if (SavedAntialias) {
-        renderer.antialias = (SavedAntialias === 'true');
-        AntiAliasButton.textContent = renderer.antialias ? "Anti-Aliasing On" : "Anti-Aliasing Off";
-    }
-    
+    if (savedWidth) resSelect.value = savedWidth;
+    if (savedRatio) MatchScreenResSelect.value = savedRatio;
+    if (cardColour) colorInput.value = cardColour;
+
+    colorInput.dispatchEvent(new Event('input', { bubbles: true }));
+
+    matcapMaterial.color.setHex(Cardcolour);
+
+    scene.traverse((object) => {
+        if (!object.name) {
+            object.material = matcapMaterial;
+            object.material.needsUpdate = true;
+        };
+    });
+
+    AntiAliasButton.textContent = savedAA ? "Anti-Aliasing On" : "Anti-Aliasing Off";
+
     applyAllRenderingSettings();
 });
 
@@ -484,7 +486,6 @@ window.addEventListener('load', () => {
 function createDeck(count) {
     const cardThickness = 0.01;
     const cardGeometry = new THREE.BoxGeometry(1.3, 2, cardThickness);
-    
     const numberGeometry = new THREE.PlaneGeometry(1.1, 1.1);
 
     for (let i = 0; i < count; i++) {
@@ -495,12 +496,14 @@ function createDeck(count) {
             map: createNumberTexture(cardValue),
             transparent: true,
             side: THREE.DoubleSide,
-            depthWrite: false
+            depthWrite: false,
+            visible: false
         });
 
         const numberMesh = new THREE.Mesh(numberGeometry, numberMaterial);
-        numberMesh.position.set(0, 0, 0.011); 
+        numberMesh.position.set(0, 0, 0.011);
         cardMesh.add(numberMesh);
+        cardMesh.numberMesh = numberMesh;
         const spacing = 0.01;
         const stackHeight = i * spacing;
         cardMesh.position.set(-4, -5 + stackHeight, 0);
@@ -512,81 +515,72 @@ function createDeck(count) {
     }
 }
 
-// rotate the card.
-function animate() {
-    // disable the animation when the game starts
+// rotate the card (menu idle animation)
+async function animate() {
     if (window.gamestarted == true) return;
 
     requestAnimationFrame(animate);
 
     const dt = clock.getDelta();
-    
+
     const rotationSpeed = 1.5;
     rotationAngle += rotationSpeed * dt;
 
     const tau = Math.PI * 2;
     rotationAngle = rotationAngle % tau;
 
-    // Spins the camera around the card
     camera.position.x = orbitRadius * Math.cos(rotationAngle);
     camera.position.z = orbitRadius * Math.sin(rotationAngle);
 
-    // makes sure the camera is always looking at the card
     const lerpSpeed = 5.0;
     const alpha = 1 - Math.exp(-lerpSpeed * dt);
 
     camera.lookAt(card.position);
     card.rotation.y += (targetRotation - card.rotation.y) * alpha;
 
-    // fps
     const time = performance.now();
     frames++;
-
     if (time >= lastTime + 1000) {
         fps = frames;
         frames = 0;
         lastTime = time;
     }
-
     document.getElementById("fps").textContent = fps + " FPS";
 
-    // render
-    composer.render();
+    await postProcessing.renderAsync();
+
+    await renderer.renderAsync(scene, camera)
 }
 
 // keep functions running during the game
-function gameanimate() {
+async function gameanimate() {
     if (window.gamestarted == false) return;
-    requestAnimationFrame(gameanimate)
+    requestAnimationFrame(gameanimate);
 
     const deltaTime = clock.getDelta();
-    
+
     updateHandPositions(deltaTime);
     updateCameraParallax(deltaTime);
     updateEnemyHandPositions(deltaTime);
     CheckDeckSize();
 
-    // fps
     const time = performance.now();
     frames++;
-
     if (time >= lastTime + 1000) {
         fps = frames;
         frames = 0;
         lastTime = time;
     }
-
     document.getElementById("fps").textContent = fps + " FPS";
 
     checkHover();
     deckhover();
-    composer.render();
-};
+    await postProcessing.renderAsync();
+}
 
 // to update hand positions when a card is played or drawed from the deck
 function updateHandPositions(deltaTime) {
     const cardCount = cardHand.length;
-
     if (cardCount === 0) return;
 
     const maxHandWidth = 10;
@@ -594,22 +588,22 @@ function updateHandPositions(deltaTime) {
     const lerpSpeed = 10;
     const alpha = 1.0 - Math.exp(-lerpSpeed * deltaTime);
 
-    const handDistance = 5 + (cardCount * 0.2); 
-    
+    const handDistance = 5 + (cardCount * 0.2);
+
     const fovInRadians = (camera.fov * Math.PI) / 180;
     const visibleHeight = 1 * Math.tan(fovInRadians / 2) * handDistance * 1.2;
-    const handYOffset = -(visibleHeight / 2); 
+    const handYOffset = -(visibleHeight / 2);
 
     const handArcRadius = 20 / (cardCount / 8);
-    
     const totalWidth = (cardCount - 1) * spacing;
 
     cardHand.forEach((card, index) => {
+        card.numberMesh.material.visible = true;
         if (card.userData.isWiggling || card.userData.isMovingToField || card.userData.isRecycling) return;
 
         const xPos = (index * spacing) - (totalWidth / 2);
         const angle = xPos / handArcRadius;
-        
+
         const hoverOffset = card.userData.hoverTarget || 0;
         const targetScale = card.userData.scaleTarget || 1;
 
@@ -630,27 +624,25 @@ function updateHandPositions(deltaTime) {
 }
 
 function updateEnemyHandPositions(deltaTime) {
-
     const cardCount = enemyHand.length;
     const maxHandWidth = 10;
     const spacing = Math.min(4, maxHandWidth / Math.max(4, cardCount));
     const lerpSpeed = 10;
 
-    const handDistance = -3 + (cardCount * 0.2); 
-    
+    const handDistance = -3 + (cardCount * 0.2);
+
     const fovInRadians = (camera.fov * Math.PI) / 180;
     const visibleHeight = 1 * Math.tan(fovInRadians / 2) * handDistance * 1.2;
-    const handYOffset = -(visibleHeight / 2) - 2.5; 
+    const handYOffset = -(visibleHeight / 2) - 2.5;
 
     const handArcRadius = 20 / (cardCount / 8);
-    
     const totalWidth = (cardCount - 1) * spacing;
 
     enemyHand.forEach((card, index) => {
-
+        card.numberMesh.material.visible = false;
         const xPos = (index * spacing) - (totalWidth / 2);
         const angle = xPos / handArcRadius;
-        
+
         const hoverOffset = card.userData.hoverTarget || 0;
         const targetScale = card.userData.scaleTarget || 1;
 
@@ -659,8 +651,8 @@ function updateEnemyHandPositions(deltaTime) {
         const localZ = -handDistance + (index * 0.01);
 
         const targetPos = new THREE.Vector3(localX, localY, localZ);
-	
-	    const alpha = 1.2 - Math.exp(-lerpSpeed * deltaTime);
+
+        const alpha = 1.2 - Math.exp(-lerpSpeed * deltaTime);
         enemy.localToWorld(targetPos);
 
         card.position.lerp(targetPos, alpha);
@@ -688,7 +680,7 @@ window.addEventListener('mousemove', (event) => {
 });
 
 function updateCameraParallax(deltaTime) {
-    const intensity = 0.5; 
+    const intensity = 0.5;
 
     const centerX = 0;
     const centerY = 0;
@@ -697,15 +689,14 @@ function updateCameraParallax(deltaTime) {
     const targetX = centerX + (mouse.x * intensity);
     const targetY = centerY + (mouse.y * intensity);
     const targetPos = new THREE.Vector3(targetX, targetY, centerZ);
-    
-    const lerpSpeed = 5; 
-    let alpha = deltaTime * lerpSpeed;
 
+    const lerpSpeed = 5;
+    let alpha = deltaTime * lerpSpeed;
     alpha = Math.min(Math.max(alpha, 0), 1);
 
     camera.position.lerp(targetPos, alpha);
 
-    const baseTilt = -0.5; 
+    const baseTilt = -0.5;
     camera.rotation.x = baseTilt + (mouse.y * 0.05);
     camera.rotation.y = -(mouse.x * 0.05);
 }
@@ -714,16 +705,15 @@ function checkHover() {
     if (!needsHoverCheck) return;
     needsHoverCheck = false;
 
-    if (document.getElementById("Pause_Menu").style.display == "block") return
+    if (document.getElementById("Pause_Menu").style.display == "block") return;
 
     raycaster.setFromCamera(mouse, camera);
     const intersects = raycaster.intersectObjects(cardHand, true);
 
     hoveredCard = null;
 
-    // Reset all cards' hover state
     cardHand.forEach(c => {
-        c.userData.hoverTarget = 0; 
+        c.userData.hoverTarget = 0;
         c.userData.scaleTarget = 1.0;
     });
 
@@ -731,26 +721,23 @@ function checkHover() {
         let hoveredObject = intersects[0].object;
         while (hoveredObject && !cardHand.includes(hoveredObject)) {
             hoveredObject = hoveredObject.parent;
-        } 
+        }
 
         if (hoveredObject) {
             hoveredObject.userData.hoverTarget = 0.2;
-            hoveredObject.userData.scaleTarget = 1; 
+            hoveredObject.userData.scaleTarget = 1;
             hoveredCard = hoveredObject;
         }
     }
 }
 
-let deckHoveredCard = null;
 let deckHovered = false;
 
-
-// check if the top card of the deck is hovered over and then lift it up slightly
 function deckhover() {
     if (!needsDeckCheck) return;
     needsDeckCheck = false;
 
-    if (document.getElementById("Pause_Menu").style.display == "block") return
+    if (document.getElementById("Pause_Menu").style.display == "block") return;
 
     raycaster.setFromCamera(mouse, camera);
     const intersects = raycaster.intersectObjects(deck, true);
@@ -759,8 +746,7 @@ function deckhover() {
         const topCard = deck[deck.length - 1];
         let isHovered = false;
         deckHovered = false;
-        
-        // Check if top card is hovered
+
         if (intersects.length > 0) {
             let hoveredObject = intersects[0].object;
             while (hoveredObject && !deck.includes(hoveredObject)) {
@@ -775,7 +761,7 @@ function deckhover() {
         if (!topCard.userData.originalPosition) {
             topCard.userData.originalPosition = topCard.position.clone();
         }
-        
+
         const targetY = isHovered ? topCard.userData.originalPosition.y + 0.1 : topCard.userData.originalPosition.y;
         const targetRotation = isHovered ? 0.05 : 0;
 
@@ -787,10 +773,9 @@ function deckhover() {
 let LastPlayedCard = 0;
 let hoveredCard = null;
 let PlayingCard = false;
-let PlayedCards = []; // cards that have been played go inside this list
+let PlayedCards = [];
 const playedPosition = new THREE.Vector3(0, -5, 0);
-let PlayerTurn = false; // Check if its the players turn
-
+let PlayerTurn = false;
 
 window.addEventListener('click', () => {
     if (hoveredCard) {
@@ -805,15 +790,14 @@ window.addEventListener('click', () => {
         } else {
             let DeckCard = deck.pop();
             DeckCard.userData.value = Math.floor(Math.random() * 10) + 1;
-            cardHand.push(DeckCard)
+            cardHand.push(DeckCard);
         }
-        
+
         PlayerTurn = false;
         EnemyTurn();
     }
 });
 
-// function for placing the card
 function PlayCard(value, Card) {
     if (!PlayerTurn) return;
     if (PlayingCard) return;
@@ -823,108 +807,93 @@ function PlayCard(value, Card) {
         LastPlayedCard = value;
 
         const cardIndex = cardHand.indexOf(Card);
-        
-        if (cardIndex > -1) {
-            cardHand.splice(cardIndex, 1);
-        }
+        if (cardIndex > -1) cardHand.splice(cardIndex, 1);
 
         MoveCardToField(Card);
     } else {
         WiggleCard(Card);
-    };
-};
+    }
+}
 
 function CheckDeckSize() {
     if (PlayedCards.length >= 5) {
-
         PlayedCards.forEach((card, index) => {
             setTimeout(() => {
+                card.numberMesh.material.visible = false;
                 MoveCardToBottom(card);
-            }, index * 50); 
+            }, index * 50);
         });
         PlayedCards = [];
     }
 
-    // make sure that there are always cards in the deck
     if (deck.length == 0) {
-        if (PlayedCards.length > 0){
+        if (PlayedCards.length > 0) {
             PlayedCards.forEach((card, index) => {
                 setTimeout(() => {
-                MoveCardToBottom(card);
-                }, index * 50); 
+                    card.numberMesh.material.visible = false;
+                    MoveCardToBottom(card);
+                }, index * 50);
             });
-
             PlayedCards = [];
         }
     }
 }
 
-// function for the ais turn, has multiple difficulty settings.
 async function EnemyTurn() {
-    // make sure that its the enemys turn so that it doesn't play during the players turn.
-    if (PlayerTurn) {return};
-
+    if (PlayerTurn) return;
     while (!PlayerTurn) {
         await enemyPlay();
     }
-
 }
 
 async function enemyPlay() {
     await sleep(1000);
+
+    let SelectedCard;
+    let value;
+
     if (Difficulty == 1) {
-        // 
 
     } else if (Difficulty == 2) {
-        
+
     } else if (Difficulty == 3) {
-        // Simple = Smarter lol
-
-        // list to sort card values
         let CardValueList = [];
-
-        // grab the value of the card
         enemyHand.forEach((card, index) => {
             CardValueList.push(card.userData.value);
         });
 
-        let SelectedCard;
-
         while (true) {
             if (CardValueList.length == 0) {
-                if (deck.length > 0) {
-                    enemyHand.push(deck.pop());
-                };
+                if (deck.length > 0) enemyHand.push(deck.pop());
                 PlayerTurn = true;
                 return;
-            };
+            }
 
-            // find the lowest value
-            SelectedCard = Math.min(...CardValueList);
+            let minValue = Math.min(...CardValueList);
 
-            if (SelectedCard == 10) {
+            if (minValue == 10) {
+                SelectedCard = minValue;
                 break;
-            };
+            }
 
-            if (SelectedCard > LastPlayedCard) {
+            if (minValue > LastPlayedCard) {
+                SelectedCard = minValue;
                 break;
             } else {
-                let CardtoRemove = CardValueList.indexOf(SelectedCard);
+                let CardtoRemove = CardValueList.indexOf(minValue);
                 CardValueList.splice(CardtoRemove, 1);
-            };
-        };
-        
+            }
+        }
     } else {
         console.log("Error, Difficulty is not within the right range.");
-    };
+        PlayerTurn = true;
+        return;
+    }
 
-    let value = SelectedCard;
-        
-    // get the card with the lowest value
+    value = SelectedCard;
+
     enemyHand.forEach((card, index) => {
-        if (card.userData.value == SelectedCard) {
-            SelectedCard = card;
-        };
+        if (card.userData.value == SelectedCard) SelectedCard = card;
     });
 
     if (typeof SelectedCard !== 'object' || !SelectedCard) {
@@ -933,89 +902,99 @@ async function enemyPlay() {
         return;
     }
 
-    let CardIndex = enemyHand.indexOf(SelectedCard)
-    MoveCardToField(SelectedCard)
+    let CardIndex = enemyHand.indexOf(SelectedCard);
+    MoveCardToField(SelectedCard);
+    SelectedCard.numberMesh.material.visible = true;
     LastPlayedCard = value;
-    enemyHand.splice(CardIndex, 1)
+    enemyHand.splice(CardIndex, 1);
 }
 
 function MoveCardToBottom(card) {
     card.userData.isRecycling = true;
 
+    card.traverse((child) => {
+        if (child.isMesh) {
+            child.material.depthTest = true;
+            child.material.depthWrite = true;
+            child.material.renderOrder = 1;
+        }
+    });
+    card.renderOrder = 1;
+
     const startTime = performance.now();
-    const duration = 800; 
-    
+    const duration = 800;
+
     const startPos = card.position.clone();
     const startQuat = card.quaternion.clone();
 
     const deckX = -4;
     const deckY = -5.2;
     const deckZ = 0;
-    
+
     const spacing = 0.01;
     const currentStackHeight = deck.length * spacing;
     const targetWorldPos = new THREE.Vector3(deckX, deckY + currentStackHeight, deckZ);
 
     const targetQuat = new THREE.Quaternion();
-    const deckRotation = new THREE.Euler(Math.PI / 2, 0, Math.PI / 2); 
+    const deckRotation = new THREE.Euler(Math.PI / 2, 0, Math.PI / 2);
     targetQuat.setFromEuler(deckRotation);
 
-    function animate(currentTime) {
+    function animateMove(currentTime) {
         const elapsed = currentTime - startTime;
         const progress = Math.min(elapsed / duration, 1);
-        
+
         const ease = progress === 0 ? 0 : Math.pow(2, 10 * progress - 10);
 
         card.position.lerpVectors(startPos, targetWorldPos, ease);
         card.quaternion.slerpQuaternions(startQuat, targetQuat, ease);
 
         if (progress < 1) {
-            requestAnimationFrame(animate);
+            requestAnimationFrame(animateMove);
         } else {
             card.userData.isRecycling = false;
 
             const cardGeometry = new THREE.BoxGeometry(1.3, 2, 0.01);
             const numberGeometry = new THREE.PlaneGeometry(1.1, 1.1);
-            
-            for (let i = 0; i < 1; i++) {
-                const cardValue = card.userData.value;
-                const cardMesh = new THREE.Mesh(cardGeometry, materials);
 
-                const numberMaterial = new THREE.MeshBasicMaterial({
-                    map: createNumberTexture(cardValue),
-                    transparent: true,
-                    side: THREE.DoubleSide,
-                    depthWrite: false
-                });
+            const cardValue = card.userData.value;
+            const cardMesh = new THREE.Mesh(cardGeometry, materials);
 
-                const numberMesh = new THREE.Mesh(numberGeometry, numberMaterial);
-                numberMesh.position.set(0, 0, 0.011); 
-                cardMesh.add(numberMesh);
-                const spacing = 0.01;
-                const stackHeight = deck.length * spacing;
-                cardMesh.position.set(-4, -5 + stackHeight, 0);
-                cardMesh.rotation.x = Math.PI / 2;
-                cardMesh.rotation.z = Math.PI / 2;
-                cardMesh.userData = { value: cardValue };
-                scene.add(cardMesh);
-                deck.push(cardMesh);
-            }
+            const numberMaterial = new THREE.MeshBasicMaterial({
+                map: createNumberTexture(cardValue),
+                transparent: true,
+                side: THREE.DoubleSide,
+                depthWrite: false
+            });
+
+            const numberMesh = new THREE.Mesh(numberGeometry, numberMaterial);
+            numberMesh.position.set(0, 0, 0.011);
+            cardMesh.add(numberMesh);
+            cardMesh.numberMesh = numberMesh;
+            const spacing2 = 0.01;
+            const stackHeight = deck.length * spacing2;
+            cardMesh.position.set(-4, -5 + stackHeight, 0);
+            cardMesh.rotation.x = Math.PI / 2;
+            cardMesh.rotation.z = Math.PI / 2;
+            cardMesh.userData = { value: cardValue };
+            scene.add(cardMesh);
+            deck.push(cardMesh);
+
             scene.remove(card);
+            card.numberMesh.material.visible = false;
             LastPlayedCard = 0;
         }
     }
-    requestAnimationFrame(animate);
+    requestAnimationFrame(animateMove);
 }
 
 function MoveCardToField(card) {
-
     const stackOffset = PlayedCards.length * 0.04;
     card.userData.isMovingToField = true;
     PlayedCards.push(card);
 
     const startTime = performance.now();
     const duration = 700;
-    
+
     const startPos = card.position.clone();
     const startQuat = card.quaternion.clone();
 
@@ -1024,7 +1003,7 @@ function MoveCardToField(card) {
     const targetQuat = new THREE.Quaternion();
     targetQuat.setFromEuler(new THREE.Euler(-Math.PI / 2, 0, 0));
 
-    function animate(currentTime) {
+    function animateMove(currentTime) {
         const elapsed = currentTime - startTime;
         const progress = Math.min(elapsed / duration, 1);
         const ease = 1 - Math.pow(1 - progress, 3);
@@ -1033,76 +1012,64 @@ function MoveCardToField(card) {
         card.quaternion.slerpQuaternions(startQuat, targetQuat, ease);
 
         if (progress < 1) {
-            requestAnimationFrame(animate);
+            requestAnimationFrame(animateMove);
         } else {
             card.userData.isMovingToField = false;
-            PlayingCard = false; 
+            PlayingCard = false;
         }
     }
-
-    requestAnimationFrame(animate);
+    requestAnimationFrame(animateMove);
 }
 
 function WiggleCard(card) {
     if (card.userData.isWiggling) return;
     card.userData.isWiggling = true;
-    
+
     const startTime = performance.now();
-    const duration = 500; 
+    const duration = 500;
     const intensity = 0.2;
-    
+
     const startQuaternion = card.quaternion.clone();
 
-    function animate(currentTime) {
+    function animateWiggle(currentTime) {
         const elapsed = currentTime - startTime;
         const progress = elapsed / duration;
 
         if (progress < 1) {
             const wiggleAmount = Math.sin(progress * Math.PI * 4) * intensity * (1 - progress);
-            
+
             const wiggleQuaternion = new THREE.Quaternion().setFromAxisAngle(
-                new THREE.Vector3(0, 0, 1), 
+                new THREE.Vector3(0, 0, 1),
                 wiggleAmount
             );
-            
+
             card.quaternion.copy(startQuaternion).multiply(wiggleQuaternion);
 
-            requestAnimationFrame(animate);
+            requestAnimationFrame(animateWiggle);
         } else {
             card.quaternion.copy(startQuaternion);
             card.userData.isWiggling = false;
             PlayingCard = false;
         }
     }
-    requestAnimationFrame(animate);
+    requestAnimationFrame(animateWiggle);
 }
 
-// draw card for the player
 function drawCard() {
-    // make sure that there is a card in the deck to draw from
     if (deck.length === 0) return;
-
-    // Get the top card from the deck
     const cardToDraw = deck.pop();
-
+    cardToDraw.numberMesh.material.visible = true;
     scene.attach(cardToDraw);
-
-    // Add to the hand
     cardHand.push(cardToDraw);
 }
 
-// draw card for the enemy
 function enemyDrawCard() {
     if (deck.length === 0) return;
-
     const cardToDraw = deck.pop();
-
     scene.attach(cardToDraw);
-
     enemyHand.push(cardToDraw);
-};
+}
 
-// create the number for the card
 function createNumberTexture(number) {
     const canvas = document.createElement('canvas');
     canvas.width = 256;
@@ -1111,9 +1078,8 @@ function createNumberTexture(number) {
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // text
     ctx.fillStyle = 'black';
-    ctx.font = '700 250px "Bebas Neue"'; 
+    ctx.font = '700 250px "Bebas Neue"';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
 
@@ -1128,99 +1094,118 @@ function createNumberTexture(number) {
 
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-// make the cards draw one by one
 async function drawOpeningHand() {
     if (enemyHand > 0) return;
     if (cardHand > 0) return;
     for (let i = 0; i < 6; i++) {
         enemyDrawCard();
         drawCard();
-        await sleep(150); 
+        await sleep(150);
     }
 }
 
-document.addEventListener("DOMContentLoaded", function() {
+(async function boot() {
+    await initRenderer();
 
-    // constants
-    const playButton = document.querySelector(".menu-button:nth-child(2)");
-    AntiAliasButton.textContent = savedAA ? "Anti-Aliasing On" : "Anti-Aliasing Off";
-    const Leave = document.getElementById("Pause_Leave_Button");
+    gltfloader.load(
+        'scene/scene.gltf',
+        (gltf) => {
+            table = gltf.scene;
+            table.scale.set(20, 20, 20);
+            table.position.set(0, -12.3, 0);
+            table.visible = false;
+            scene.add(table);
+            table.name = "table";
 
-    function initializeGame() {
-        PlayerTurn = true;
-        window.gamestarted = true;
-        applyAllRenderingSettings(); // Re-apply to update TAA and bloom settings
+            playButton.disabled = false;
+        },
+        (xhr) => {
+            const percentComplete = Math.round((xhr.loaded / xhr.total) * 100);
+            console.log(`Loading model: ${percentComplete}% downloaded`);
+        },
+        (error) => {
+            console.error('An error happened:', error);
+        }
+    );
 
-        // Restore bloom to full quality for the game
-        bloomPass.strength = 1;
-        bloomPass.radius = 0.3;
+    applyAllRenderingSettings();
 
-        matcapMaterial.transparent = false;
-        matcapMaterial.opacity = 1;
-    
-        scene.add(enemy);
-        createDeck(40);
-    
-        // camera
-        camera.position.set(0, -1, 8);
-        camera.lookAt(0, -13, -6);
-    
-        // functions
-        gameanimate();
-        drawOpeningHand();
-    }   
+    (function setupGameControls() {
+        const Leave = document.getElementById("Pause_Leave_Button");
 
-    // check if the play button has been pressed to delete the main menu scene.
-    playButton.addEventListener('click', function() {
-        scene.remove(card);
-        initializeGame();
-    });
+        function initializeGame() {
+            PlayerTurn = true;
+            window.gamestarted = true;
 
-    // Cleanup function for cards
-    const destroyCards = () => {
-        const destroyCard = (cardMesh) => {
-            while(cardMesh.children.length > 0){
-                const child = cardMesh.children[0];
-                if (child.geometry) child.geometry.dispose();
-                if (child.material) {
-                    if (child.material.map) child.material.map.dispose();
-                    child.material.dispose();
+            table.visible = true;
+            table.renderOrder = -1;
+            table.traverse((child) => {
+                if (child.isMesh) {
+                    child.material.depthWrite = true;
+                    child.renderOrder = 1;
                 }
-                cardMesh.remove(child);
+            });
+
+            matcapMaterial.transparent = true;
+            matcapMaterial.opacity = 0.4;
+
+            scene.add(enemy);
+            createDeck(40);
+
+            camera.position.set(0, -1, 8);
+            camera.lookAt(0, -13, -6);
+
+            gameanimate();
+            drawOpeningHand();
+        }
+
+        playButton.addEventListener('click', function () {
+            scene.remove(card);
+            initializeGame();
+        });
+
+        const destroyCards = () => {
+            const destroyCard = (cardMesh) => {
+                while (cardMesh.children.length > 0) {
+                    const child = cardMesh.children[0];
+                    if (child.geometry) child.geometry.dispose();
+                    if (child.material) {
+                        if (child.material.map) child.material.map.dispose();
+                        child.material.dispose();
+                    }
+                    cardMesh.remove(child);
+                }
+                if (cardMesh.geometry) cardMesh.geometry.dispose();
+                scene.remove(cardMesh);
             };
-            if (cardMesh.geometry) cardMesh.geometry.dispose();
-            scene.remove(cardMesh);
+
+            cardHand.forEach(destroyCard);
+            enemyHand.forEach(destroyCard);
+            deck.forEach(destroyCard);
+            PlayedCards.forEach(destroyCard);
+            enemyHand.length = 0;
+            cardHand.length = 0;
+            deck.length = 0;
+            LastPlayedCard = 0;
         };
 
-        cardHand.forEach(destroyCard);
-        enemyHand.forEach(destroyCard)
-        deck.forEach(destroyCard);
-        PlayedCards.forEach(destroyCard)
-        enemyHand.length = 0;
-        cardHand.length = 0;
-        deck.length = 0;
-        LastPlayedCard = 0;
-    };
+        window.addEventListener('game-restart', async function () {
+            PlayerTurn = false;
+            window.gamestarted = false;
+            scene.remove(enemy);
+            destroyCards();
 
-    // Restart button logic
-    window.addEventListener('game-restart', async function() {
-        PlayerTurn = false;
-        window.gamestarted = false;
-        scene.remove(enemy);
-        destroyCards();
-    
-        initializeGame();
-    });
+            initializeGame();
+        });
 
-    // add the scene when they go back to the menu
-    Leave.addEventListener('click', function() {
-        location.reload();
-    });
+        Leave.addEventListener('click', function () {
+            location.reload();
+        });
+    })();
 
-});
-
-if (window.gamestarted == true) gameanimate();
-animate();
+    if (window.gamestarted == true) gameanimate();
+    animate();
+})();
 
 </script>
 <!--body-->
@@ -1236,8 +1221,10 @@ animate();
         <h1 id="W", class="title" style="left: 320px;">w</h1>
     </div>
     <!--Buttons-->
-    <button class="menu-button">Play</button>
-    <button style="Bottom: 325px" class="menu-button">Settings</button>
+    <button id="PlayButton" class="menu-button">Play</button>
+    <button id="SettingsButton" style="Bottom: 325px" class="menu-button">Settings</button>
+    <button id="CreditsButton" style="Bottom: 250px" class="menu-button">Credits</button>
+
 
     <!--fps counter-->
     <p style="color: white; position: absolute; top: -5px; right: 10px;" id="fps">0</p>
@@ -1253,6 +1240,19 @@ animate();
 
         <!--Back Button-->
         <button style="bottom: 375px;" id="SettingsBackButton", class="Setting-Btn">Back</button>
+
+        <!--Color picker-->
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/mdbassit/Coloris@latest/dist/coloris.min.css"/>
+        <script src="https://cdn.jsdelivr.net/gh/mdbassit/Coloris@latest/dist/coloris.min.js"></script>
+        <div style="display: none; position: absolute; top: 243px; left: 240px; z-index: 1000;" id="Colour-Container">
+            <input style="display: block; width: 200px; height: 40px; visibility: visible;" id="Colour-Picker" type="text" data-coloris value="0xffffff">
+        </div>
+        <script>
+            Coloris({
+                themeMode: 'dark',
+                alpha: false
+            });
+        </script>
 
         <!--Fullscreen toggle-->
         <button id="FullscreenButton", class="Setting-Btn">Fullscreen Toggle</button>
@@ -1309,7 +1309,7 @@ animate();
     <!--Game-->
     <div style="display: none;" class="Game">
         <button id="Pause_Button" class="Pause_Button">
-             <img class="Pause_img" src="pause.png">
+             <img class="Pause_img" src="images/pause.png">
         </button>
     </div>
 
@@ -1353,6 +1353,44 @@ animate();
 
     /* background */
     body { margin: 0; background-color: var(--Background); }
+
+    /* coloris */
+    #Colour-Container {
+        position: absolute;
+        top: 220px;
+        left: 30px;
+        z-index: 1000;
+    }
+
+    .clr-field {
+        position: relative;
+        display: flex;
+        width: 200px;
+        height: 40px;
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 10px;
+        box-sizing: border-box;
+    }
+
+    .clr-field button, 
+    input[data-coloris] {
+        background-image: none !important;
+    }
+
+    #Colour-Picker {
+        display: block;
+        width: 100%;
+        height: 100%;
+        visibility: visible;
+    }
+
+    .clr-field button {
+        width: 100%;
+        height: 100%;
+        border: none;
+        cursor: pointer;
+    }
 
     /* title*/
     .title { font-family: "Bebas Neue", system-ui; color: var(--Transparent);
@@ -1431,7 +1469,6 @@ animate();
     .WarningText { position:absolute; color: var(--ButtonText); left: 40px; bottom: 30px;}
 
     /* descriptions */
-
     .Description { position: fixed; background-color: rgb(12, 14, 16); opacity: 70%; top: 0px; left: 0px; display: none; 
         width: 450px; height: 35px; margin-left: 20px; margin-top: 0px; color: white; will-change: transform; 
         pointer-events: none; border-radius: 3px; }
