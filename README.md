@@ -1,5 +1,5 @@
 <ul>
-  <h1>OverDraw</h1>
+  <img src="https://github.com/Dp2oYT/OverDraw/blob/main/title.png">
   <h2>Version 1.06</h2>
   <li><h2>New Features</h2></li>
 </ul>
