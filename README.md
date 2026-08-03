@@ -1,5 +1,5 @@
 <ul>
-  <img src="https://github.com/Dp2oYT/OverDraw/blob/main/title.png">
+  <img src="https://github.com/Dp2oYT/OverDraw/blob/main/github/title.png">
   <br></br> <!-- padding -->
   <p>
     OverDraw is a card game I have come up with, right now its in its development stage so expect low content and lots of bugs.
