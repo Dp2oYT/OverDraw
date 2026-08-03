@@ -12,22 +12,19 @@
   <li><h2>New Features</h2></li>
 </ul>
 
-> Opponent can now play the game
->> For now the opponent places the best card it has.
->> Picking up a card ends your turn this functionality was also added to the opponent
+> ## _**Opponent can now play the game**_
+- For now the opponent places the best card it has.
 
-<br></br>
+- Picking up a card ends your turn this functionality was also added to the opponent
 
-> Added new setting for changing card colours
->> Screen ratio bug for where the button may appear somewhere different will be fixed soon
+> ## _**Added new setting for changing card colours**_
+- Screen ratio bug for where the button may appear somewhere different will be fixed soon
 
-<br></br>
 
-> Added a table
->> this table may be changed later its mostly a placeholder for now
+> ## _**Added a table**_
+- this table may be changed later its mostly a placeholder for now
 
-<br></br>
 
-> Added difficulty functionality
->> Changing difficulty will be added later when I come up with easier opponents
+> ## _**Added difficulty functionality**_
+- Changing difficulty will be added later when I come up with easier opponents
 
