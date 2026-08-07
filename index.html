@@ -251,49 +251,48 @@ const gltfloader = new GLTFLoader();
 const localMatcap = './Matcaps/matcap.png';
 const remoteMatcap = 'https://github.com/Dp2oYT/OverDraw/blob/main/Matcaps/matcap.png';
 
-// the fallback texture which allows further capabilty on github and also as a fallback if the local textures dont load
-const textureFallbackBase = 'https://raw.githubusercontent.com/Dp2oYT/OverDraw/main/scene/textures/';
-const textureFallbackMap = {
-    'iron_table_baseColor.png': `${textureFallbackBase}iron_table_baseColor.png`,
-    'iron_table_metallicRoughness.png': `${textureFallbackBase}iron_table_metallicRoughness.png`,
-    'iron_table_normal.png': `${textureFallbackBase}iron_table_normal.png`
-};
-const fallbackTextureAttempts = new Set();
+const githubModelUrl = 'https://raw.githubusercontent.com/Dp2oYT/OverDraw/main/scene/scene.gltf';
+const githubTextureBaseUrl = 'https://raw.githubusercontent.com/Dp2oYT/OverDraw/main/scene/';
 
-function createTextureLoaderWithFallback() {
-    const textureLoader = new THREE.TextureLoader();
-    const originalLoad = textureLoader.load.bind(textureLoader);
+function loadTableModel(onSuccess, onProgress, onError) {
+    const candidates = [
+        { modelUrl: 'scene.gltf', textureBaseUrl: 'scene/', label: 'local' },
+        { modelUrl: 'scene.gltf', textureBaseUrl: githubTextureBaseUrl, label: 'github' }
+    ];
 
-    textureLoader.load = function(url, onLoad, onProgress, onError) {
-        const resourceUrl = String(url);
-        const fallbackUrl = textureFallbackMap[resourceUrl.split('/').pop()] || null;
+    let attemptIndex = 0;
 
-        return originalLoad(resourceUrl, (texture) => {
-            if (texture && texture.image) {
-                texture.colorSpace = THREE.SRGBColorSpace;
+    const tryNextModel = () => {
+        if (attemptIndex >= candidates.length) {
+            if (onError) onError(new Error('Failed to load the table model.'));
+            return;
+        }
+
+        const candidate = candidates[attemptIndex++];
+
+        if (candidate.label === 'local') {
+            gltfloader.setPath('scene/');
+            gltfloader.setResourcePath('scene/');
+        } else {
+            gltfloader.setPath(githubTextureBaseUrl);
+            gltfloader.setResourcePath(githubTextureBaseUrl);
+        }
+
+        gltfloader.load(
+            candidate.modelUrl,
+            (gltf) => {
+                if (onSuccess) onSuccess(gltf);
+            },
+            onProgress,
+            (error) => {
+                console.warn(`Failed to load model from ${candidate.label} source`, error);
+                tryNextModel();
             }
-            if (onLoad) onLoad(texture);
-        }, onProgress, (error) => {
-            if (fallbackUrl && !fallbackTextureAttempts.has(resourceUrl)) {
-                fallbackTextureAttempts.add(resourceUrl);
-                console.warn(`Falling back to remote texture for ${resourceUrl}`);
-                return originalLoad(fallbackUrl, (texture) => {
-                    if (texture && texture.image) {
-                        texture.colorSpace = THREE.SRGBColorSpace;
-                    }
-                    if (onLoad) onLoad(texture);
-                }, onProgress, onError);
-            }
-
-            if (onError) onError(error);
-        });
+        );
     };
 
-    return textureLoader;
+    tryNextModel();
 }
-
-const textureLoaderWithFallback = createTextureLoaderWithFallback();
-gltfloader.setTextureLoader(textureLoaderWithFallback);
 
 // settings
 let Difficulty = 3;
@@ -1266,8 +1265,7 @@ async function drawOpeningHand() {
 (async function boot() {
     await initRenderer();
 
-    gltfloader.load(
-        'scene/scene.gltf',
+    loadTableModel(
         (gltf) => {
             table = gltf.scene;
             table.scale.set(20, 20, 20);
