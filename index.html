@@ -251,6 +251,50 @@ const gltfloader = new GLTFLoader();
 const localMatcap = './Matcaps/matcap.png';
 const remoteMatcap = 'https://github.com/Dp2oYT/OverDraw/blob/main/Matcaps/matcap.png';
 
+// the fallback texture which allows further capabilty on github and also as a fallback if the local textures dont load
+const textureFallbackBase = 'https://raw.githubusercontent.com/Dp2oYT/OverDraw/main/scene/textures/';
+const textureFallbackMap = {
+    'iron_table_baseColor.png': `${textureFallbackBase}iron_table_baseColor.png`,
+    'iron_table_metallicRoughness.png': `${textureFallbackBase}iron_table_metallicRoughness.png`,
+    'iron_table_normal.png': `${textureFallbackBase}iron_table_normal.png`
+};
+const fallbackTextureAttempts = new Set();
+
+function createTextureLoaderWithFallback() {
+    const textureLoader = new THREE.TextureLoader();
+    const originalLoad = textureLoader.load.bind(textureLoader);
+
+    textureLoader.load = function(url, onLoad, onProgress, onError) {
+        const resourceUrl = String(url);
+        const fallbackUrl = textureFallbackMap[resourceUrl.split('/').pop()] || null;
+
+        return originalLoad(resourceUrl, (texture) => {
+            if (texture && texture.image) {
+                texture.colorSpace = THREE.SRGBColorSpace;
+            }
+            if (onLoad) onLoad(texture);
+        }, onProgress, (error) => {
+            if (fallbackUrl && !fallbackTextureAttempts.has(resourceUrl)) {
+                fallbackTextureAttempts.add(resourceUrl);
+                console.warn(`Falling back to remote texture for ${resourceUrl}`);
+                return originalLoad(fallbackUrl, (texture) => {
+                    if (texture && texture.image) {
+                        texture.colorSpace = THREE.SRGBColorSpace;
+                    }
+                    if (onLoad) onLoad(texture);
+                }, onProgress, onError);
+            }
+
+            if (onError) onError(error);
+        });
+    };
+
+    return textureLoader;
+}
+
+const textureLoaderWithFallback = createTextureLoaderWithFallback();
+gltfloader.setTextureLoader(textureLoaderWithFallback);
+
 // settings
 let Difficulty = 3;
 
