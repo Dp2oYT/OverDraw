@@ -53,6 +53,10 @@
         const Pause = document.getElementById("Pause_Button");
         const Pause_Menu = document.getElementById("Pause_Menu");
 
+        // Credits
+        const Credits = document.getElementById("Credits_Para")
+        const CreditsBlock = document.getElementById("Credits_Block")
+
         // tracking mouse position
         window.addEventListener('mousemove', (e) => {
             document.documentElement.style.setProperty('--mouse-x', e.clientX);
@@ -118,6 +122,15 @@
             ColourContainer.style.visibility = "visible";
             ColourPicker.style.display = "block";
         });
+
+        CreditsButton.addEventListener("click", function() {
+            playButton.style.display = "none";
+            CreditsButton.style.display = "none";
+            settingsButton.style.display = "none";
+            SettingsBackButton.style.display = "block";
+            Credits.style.display = "block";
+            CreditsBlock.style.display = "block";
+        });
         
 
         // fullscreen setting pressed
@@ -140,6 +153,7 @@
             AntiAliasButton.style.display = "none";
             MatchScreenRes.style.display = "none";
             ColourContainer.style.display = "none";
+            CreditsBlock.style.display = "none";
         })
 
         // start the game
@@ -150,18 +164,12 @@
             const settingsButton = document.getElementById("SettingsButton");
             const game = document.getElementsByClassName("Game");
             const Paused_Text = document.getElementById("Paused_Text");
-            const btextone = document.getElementById("btext1");
-            const btexttwo = document.getElementById("btext2");
-            const btextthree = document.getElementById("Wtext");
             const Resume = document.getElementById("Resume_Button");
             const PauseSettingsButton = document.getElementById("Pause_Settings");
             const PauseMenuSettings = document.getElementById("Pause_Menu_Settings");
             const Restart = document.getElementById("Restart_Button");
             const Leave = document.getElementById("Pause_Leave_Button");
 
-            btextone.style.display = "none";
-            btexttwo.style.display = "none";
-            Wtext.style.display = "none";
             Pause.style.display = "block";
             Pause_Menu.style.display = "none";
             Paused_Text.style.display = "block";
@@ -188,8 +196,6 @@
                     game[0].style.display = "none";
                 }
 
-                btextone.style.display = "block";
-                btexttwo.style.display = "block";
                 O.style.display = "block";
                 V.style.display = "block";
                 E.style.display = "block";
@@ -242,6 +248,9 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 const loader = new THREE.TextureLoader();
 const gltfloader = new GLTFLoader();
 
+const localMatcap = './Matcaps/matcap.png';
+const remoteMatcap = 'https://github.com/Dp2oYT/OverDraw/blob/main/Matcaps/matcap.png';
+
 // settings
 let Difficulty = 3;
 
@@ -250,14 +259,28 @@ const arcRadius = 10;
 let rotationAngle = 0;
 const orbitRadius = 6; // How far away the camera stays from the card
 
+const configureMatcapTexture = (texture) => {
+  texture.magFilter = THREE.LinearFilter;
+  texture.minFilter = THREE.LinearFilter;
+  texture.wrapS = THREE.ClampToEdgeWrapping;
+  texture.wrapT = THREE.ClampToEdgeWrapping;
+  texture.needsUpdate = false;
+  return texture;
+};
+
 // image for reflections
-const Matcap = loader.load('Matcaps/matcap.png', (texture) => {
-    texture.magFilter = THREE.LinearFilter;
-    texture.minFilter = THREE.LinearFilter;
-    texture.wrapS = THREE.ClampToEdgeWrapping;
-    texture.wrapT = THREE.ClampToEdgeWrapping;
-    texture.needsUpdate = false;
-});
+const Matcap = loader.load(
+    localMatcap, 
+    (texture) => {
+    configureMatcapTexture(texture);
+    },
+    undefined,
+    (error) => {
+        loader.load(remoteMatcap, (texture) => {
+            configureMatcapTexture(texture);
+        });
+    }
+);
 
 // card lists
 const deck = [];
@@ -323,12 +346,26 @@ let matcapMaterial = new THREE.MeshMatcapMaterial({
     color: cardcolour,
     matcap: Matcap,
     transparent: true,
-    opacity: 0.4,
+    opacity: 0.6,
     side: THREE.DoubleSide,
     depthWrite: true
 });
 
-const materials = Array(6).fill(matcapMaterial);
+function createCardMaterial(opacity = 0.6) {
+    const material = matcapMaterial.clone();
+    material.transparent = true;
+    material.opacity = opacity;
+    material.side = THREE.DoubleSide;
+    material.depthWrite = true;
+    material.color.copy(matcapMaterial.color);
+    return material;
+}
+
+function createCardMaterialArray(opacity = 0.6) {
+    return Array.from({ length: 6 }, () => createCardMaterial(opacity));
+}
+
+const materials = createCardMaterialArray(0.6);
 
 // glass material on top of the card material
 let glassMaterial = new THREE.MeshPhysicalMaterial({
@@ -336,13 +373,14 @@ let glassMaterial = new THREE.MeshPhysicalMaterial({
     thickness: 0.5,
     roughness: 0.15,
     transparent: true,
-    opacity: 0.4,
+    opacity: 0.6,
     envMapIntensity: 1.0,
     depthWrite: false
 });
 
 // make the card
 const card = new THREE.Mesh(geometry, materials);
+card.userData.isCard = true;
 const glassShell = new THREE.Mesh(glassGeometry, glassMaterial);
 
 const enableshell = false; 
@@ -358,6 +396,7 @@ const enemyMaterial = new THREE.MeshStandardMaterial({
     emissiveIntensity: 0.2
 });
 
+// declare enemy position
 const enemy = new THREE.Mesh(enemyGeometry, enemyMaterial);
 enemy.position.set(0, -3, -8);
 enemy.visible = false;
@@ -373,6 +412,91 @@ const AntiAliasButton = document.getElementById("Anti-AliasingButton");
 let lastTime = performance.now();
 let frames = 0;
 let fps = 0;
+
+function normalizeCardColour(colorValue) {
+    // if the colour value has not been set yet do not run the script and return to the base colour
+    if (colorValue === null || colorValue === undefined) return '#d4feff';
+
+    const trimmed = String(colorValue).trim();
+    // if the colour value wasn't trimmed properly return to base colour
+    if (!trimmed) return '#d4feff';
+
+    // rest of code makes sure that the colour is formatted properly
+    if (trimmed.startsWith('#')) {
+        const cleaned = trimmed.replace(/[^0-9a-fA-F]/g, '');
+        if (cleaned.length === 3) {
+            return `#${cleaned.split('').map(ch => ch + ch).join('').toLowerCase()}`;
+        }
+        if (cleaned.length === 6) {
+            return `#${cleaned.toLowerCase()}`;
+        }
+        return '#d4feff';
+    }
+
+    if (trimmed.startsWith('0x') || trimmed.startsWith('0X')) {
+        const parsedHex = Number.parseInt(trimmed, 16);
+        if (!Number.isNaN(parsedHex)) {
+            return `#${parsedHex.toString(16).padStart(6, '0').toLowerCase()}`;
+        }
+    }
+
+    const parsedNumber = Number(trimmed);
+    if (!Number.isNaN(parsedNumber)) {
+        return `#${parsedNumber.toString(16).padStart(6, '0').toLowerCase()}`;
+    }
+
+    return '#d4feff';
+}
+
+function applyCardColour(colorValue) {
+    const picker = document.getElementById('Colour-Picker');
+    const normalizedColour = normalizeCardColour(colorValue);
+    const numericColour = Number.parseInt(normalizedColour.replace('#', '0x'), 16);
+
+    if (picker) {
+        picker.value = normalizedColour;
+        picker.setAttribute('value', normalizedColour);
+        picker.style.backgroundColor = normalizedColour;
+        picker.dispatchEvent(new Event('input', { bubbles: true }));
+        picker.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+
+    matcapMaterial.color.setHex(numericColour);
+
+    scene.traverse((object) => {
+        if (!object.isMesh || object.userData?.isCard !== true) return;
+
+        const materialsToUpdate = Array.isArray(object.material) ? object.material : [object.material];
+        materialsToUpdate.forEach((material) => {
+            if (material && (material.isMeshMatcapMaterial || material.isMeshPhysicalMaterial || material.isMeshStandardMaterial)) {
+                material.color.setHex(numericColour);
+                material.needsUpdate = true;
+            }
+        });
+    });
+}
+
+function restoreStoredSettings() {
+    const savedWidth = localStorage.getItem('preferred_width');
+    const savedRatio = localStorage.getItem('preferred_ratio');
+    const cardColour = localStorage.getItem('Cardhex');
+
+    if (savedWidth && Array.from(resSelect.options).some(option => option.value === savedWidth)) {
+        resSelect.value = savedWidth;
+    }
+
+    if (savedRatio && Array.from(MatchScreenResSelect.options).some(option => option.value === savedRatio)) {
+        MatchScreenResSelect.value = savedRatio;
+    }
+
+    applyCardColour(cardColour);
+
+    if (savedAA) {
+        AntiAliasButton.textContent = "Anti-Aliasing On";
+    } else {
+        AntiAliasButton.textContent = "Anti-Aliasing Off";
+    }
+}
 
 function applyAllRenderingSettings() {
     if (!renderer) return;
@@ -405,8 +529,16 @@ function applyAllRenderingSettings() {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
 
-    localStorage.setItem('preferred_width', baseWidth);
-    localStorage.setItem('preferred_ratio', MatchScreenResSelect.value);
+    const storedWidth = localStorage.getItem('preferred_width');
+    if (storedWidth !== String(baseWidth)) {
+        localStorage.setItem('preferred_width', String(baseWidth));
+    }
+
+    const storedRatio = localStorage.getItem('preferred_ratio');
+    if (storedRatio !== MatchScreenResSelect.value) {
+        localStorage.setItem('preferred_ratio', MatchScreenResSelect.value);
+    }
+    
 }
 
 playButton.disabled = true;
@@ -428,16 +560,12 @@ window.addEventListener("focus", () => {
 // change the color of the using the coloris colour picker
 document.addEventListener('coloris:pick', event => {
     const hexVal = event.detail.color;
-    const customHex = parseInt(hexVal.replace('#', '0x'));
-    localStorage.setItem('Cardhex', customHex);
-    matcapMaterial.color.setHex(customHex);
+    const normalizedColour = normalizeCardColour(hexVal);
+    const customHex = Number.parseInt(normalizedColour.replace('#', '0x'), 16);
 
-    scene.traverse((object) => {
-        if (!object.name) {
-            object.material = matcapMaterial;
-            object.material.needsUpdate = true;
-        };
-    });
+    localStorage.setItem('Cardhex', normalizedColour);
+    applyCardColour(normalizedColour);
+    matcapMaterial.color.setHex(customHex);
 });
 
 
@@ -454,31 +582,17 @@ AntiAliasButton.addEventListener('click', function () {
     location.reload();
 });
 
-const colorInput = document.getElementById('Color-Picker');
+
+// formats the hex colour so the colour picker can read it
+function formatHexForPicker(colorStr) {
+    if (!colorStr) return '#ffffff';
+    let clean = colorStr.replace(/[^0-9a-fA-F]/g, '');
+    clean = clean.padStart(6, '0').slice(-6);
+    return `#${clean}`;
+}
 
 window.addEventListener('load', () => {
-    const savedWidth = localStorage.getItem('preferred_width');
-    const savedRatio = localStorage.getItem('preferred_ratio');
-    const cardColour = localStorage.getItem('Cardhex')
-    const colorInput = document.getElementById('colorInput');
-
-    if (savedWidth) resSelect.value = savedWidth;
-    if (savedRatio) MatchScreenResSelect.value = savedRatio;
-    if (cardColour) colorInput.value = cardColour;
-
-    colorInput.dispatchEvent(new Event('input', { bubbles: true }));
-
-    matcapMaterial.color.setHex(Cardcolour);
-
-    scene.traverse((object) => {
-        if (!object.name) {
-            object.material = matcapMaterial;
-            object.material.needsUpdate = true;
-        };
-    });
-
-    AntiAliasButton.textContent = savedAA ? "Anti-Aliasing On" : "Anti-Aliasing Off";
-
+    restoreStoredSettings();
     applyAllRenderingSettings();
 });
 
@@ -490,7 +604,7 @@ function createDeck(count) {
 
     for (let i = 0; i < count; i++) {
         const cardValue = Math.floor(Math.random() * 10) + 1;
-        const cardMesh = new THREE.Mesh(cardGeometry, materials);
+        const cardMesh = new THREE.Mesh(cardGeometry, createCardMaterialArray(0.2));
 
         const numberMaterial = new THREE.MeshBasicMaterial({
             map: createNumberTexture(cardValue),
@@ -509,7 +623,7 @@ function createDeck(count) {
         cardMesh.position.set(-4, -5 + stackHeight, 0);
         cardMesh.rotation.x = Math.PI / 2;
         cardMesh.rotation.z = Math.PI / 2;
-        cardMesh.userData = { value: cardValue };
+        cardMesh.userData = { value: cardValue, isCard: true };
         scene.add(cardMesh);
         deck.push(cardMesh);
     }
@@ -957,13 +1071,14 @@ function MoveCardToBottom(card) {
             const numberGeometry = new THREE.PlaneGeometry(1.1, 1.1);
 
             const cardValue = card.userData.value;
-            const cardMesh = new THREE.Mesh(cardGeometry, materials);
+            const cardMesh = new THREE.Mesh(cardGeometry, createCardMaterialArray(0.2));
 
             const numberMaterial = new THREE.MeshBasicMaterial({
                 map: createNumberTexture(cardValue),
                 transparent: true,
                 side: THREE.DoubleSide,
-                depthWrite: false
+                depthWrite: false,
+                visible: false
             });
 
             const numberMesh = new THREE.Mesh(numberGeometry, numberMaterial);
@@ -975,7 +1090,7 @@ function MoveCardToBottom(card) {
             cardMesh.position.set(-4, -5 + stackHeight, 0);
             cardMesh.rotation.x = Math.PI / 2;
             cardMesh.rotation.z = Math.PI / 2;
-            cardMesh.userData = { value: cardValue };
+            cardMesh.userData = { value: cardValue, isCard: true };
             scene.add(cardMesh);
             deck.push(cardMesh);
 
@@ -1128,6 +1243,7 @@ async function drawOpeningHand() {
         }
     );
 
+    restoreStoredSettings();
     applyAllRenderingSettings();
 
     (function setupGameControls() {
@@ -1147,7 +1263,7 @@ async function drawOpeningHand() {
             });
 
             matcapMaterial.transparent = true;
-            matcapMaterial.opacity = 0.4;
+            matcapMaterial.opacity = 0.6;
 
             scene.add(enemy);
             createDeck(40);
@@ -1229,12 +1345,6 @@ async function drawOpeningHand() {
     <!--fps counter-->
     <p style="color: white; position: absolute; top: -5px; right: 10px;" id="fps">0</p>
     
-    <!--Bottom Text-->
-    <p class="B-text" id="btext1">This game was designed by Dp2o</p>
-    <p class="B-text" id="btext2" style="left: 260px;">- - Version 1.01</p>
-
-    <!--Warning Text-->
-    <p class="WarningText" id="Wtext">Warning - Make sure you have your browser as high performance in graphics settings in order to use your gpu</p>
     
     <div class="Setting-Menu"> <!--Settings-->
 
@@ -1244,7 +1354,7 @@ async function drawOpeningHand() {
         <!--Color picker-->
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/mdbassit/Coloris@latest/dist/coloris.min.css"/>
         <script src="https://cdn.jsdelivr.net/gh/mdbassit/Coloris@latest/dist/coloris.min.js"></script>
-        <div style="display: none; position: absolute; top: 243px; left: 240px; z-index: 1000;" id="Colour-Container">
+        <div style="display: none; position: absolute; left: 240px; z-index: 1000;" id="Colour-Container">
             <input style="display: block; width: 200px; height: 40px; visibility: visible;" id="Colour-Picker" type="text" data-coloris value="0xffffff">
         </div>
         <script>
@@ -1306,10 +1416,30 @@ async function drawOpeningHand() {
         </div>
     </div>
 
+    <div id="Credits_Block" style="border: 1px solid #ccc; overflow: auto; display: none; position: absolute; width: 400px; height: 300px; bottom: 50px; left: 30px; background-color: rgba(0, 0, 0, 0.486);">
+        <p class="Credits" style="display: none; color: white; padding-left: 10px;" id="Credits_Para">
+            <strong><span style="font-size: 20px;">Developer</span></strong> <br> <br>
+            Lead Developer - Dp2o
+            <a style="padding-left: 5px;" href="https://www.youtube.com/@Dp2oYT">
+                <img style="width: 15px; height: 15px;" target="_blank" src="https://www.youtube.com/s/desktop/c9bb4632/img/favicon_32x32.png" alt="Youtube">
+            </a> <br> <br>
+
+            <strong><span style="font-size: 20px;">Credits to</span></strong> <br> <br>
+            Modeler - <a class="exclude-select" target="_blank" href="https://sketchfab.com/MaX3Dd">MaX3Dd (Sketchfab)</a>
+            <br> <br>
+            UI component (color picker) - <a class="exclude-select" target="_blank" href="https://coloris.js.org/">Coloris</a>
+            <br> <br>
+            Website hoster - <a class="exclude-select" target="_blank" href="https://github.com">Github</a>
+            <br> <br>
+            Rendering engine - <a class="exclude-select" target="_blank" href="https://github.com/mrdoob/three.js/">Three.js</a>
+
+        </p>
+    </div>
+
     <!--Game-->
     <div style="display: none;" class="Game">
         <button id="Pause_Button" class="Pause_Button">
-             <img class="Pause_img" src="images/pause.png">
+             <img class="Pause_img" alt="||" src="images/pause.png">
         </button>
     </div>
 
@@ -1320,10 +1450,10 @@ async function drawOpeningHand() {
         <h1 style="display: none;" id="Paused_Text" class="Paused_Text">Game Paused</h1>
 
         <!--Buttons-->
-        <button id="Resume_Button" class="Pause_Menu_Button">Resume</button>
-        <button id="Restart_Button" class="Pause_Menu_Button" style="bottom: 430px;">Restart</button>
-        <button id="Pause_Settings" class="Pause_Menu_Button" style="bottom: 360px;">Settings</button>
-        <button id="Pause_Leave_Button" class="Pause_Menu_Button" style="bottom: 290px;">Leave</button>
+        <button id="Resume_Button" class="Pause_Menu_Button" style="bottom: 440px">Resume</button>
+        <button id="Restart_Button" class="Pause_Menu_Button" style="bottom: 370px;">Restart</button>
+        <button id="Pause_Settings" class="Pause_Menu_Button" style="bottom: 300px;">Settings</button>
+        <button id="Pause_Leave_Button" class="Pause_Menu_Button" style="bottom: 230px;">Leave</button>
 
         <!--Pause Menu Settings-->
         <div id="Pause_Menu_Settings" class="Pause_Menu_Settings">
@@ -1349,15 +1479,42 @@ async function drawOpeningHand() {
     }
 
     /* make so you cant select text */
-    * :not(.B-text) { -webkit-user-select: none; user-select: none; }
+    * :not() { -webkit-user-select: none; user-select: none; }
+
+    /* add an exclusion to the user select */
+    .exclude-select {
+        -webkit-user-select: text; user-select: text;
+    }
 
     /* background */
     body { margin: 0; background-color: var(--Background); }
 
+    /* scroll bar */
+
+    ::-webkit-scrollbar {
+        width: 5px;
+    }
+
+    ::-webkit-scrollbar-track {
+        background: #3e3e3e;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background: #888;
+    }
+
+
+    /* Credits */
+    .Credits {
+        font-family: "Bebas Neue", system-ui;
+        user-select: text;
+        -webkit-user-select: text;
+    }
+
     /* coloris */
     #Colour-Container {
         position: absolute;
-        top: 220px;
+        bottom: 325px;
         left: 30px;
         z-index: 1000;
     }
@@ -1406,9 +1563,6 @@ async function drawOpeningHand() {
         border-radius: 10px; border: 1px solid var(--ShadowColour); color: var(--ButtonText); font-family: "Bebas Neue", system-ui;
         font-weight: bold; font-style: normal; font-size: 20px;
         transition: all var(--TransitionSpeed) ease-in-out; }
-    
-    /* bottom text */
-    .B-text { -webkit-user-select: none; user-select: text; position: absolute; bottom: 10px; left: 40px; color: var(--ButtonText); text-shadow: 10px; }
 
     /* menu button animations */
     .menu-button:hover { background: var(--ButtonHover); color: var(--ButtonText); width: 205px; }
@@ -1448,7 +1602,7 @@ async function drawOpeningHand() {
     .Paused_Text { font-family: "Bebas Neue", system-ui; position: absolute; top: -50px; left: 260px; color: var(--Transparent);
         text-shadow: 2px 2px 0px var(--ShadowColour), 3px 4px 0px var(--ShadowLight); font-weight: bold; font-style: normal;
         background: none; font-size: 70px; }
-    .Pause_Menu_Button { position: absolute; bottom: 500px; left: 30px; width: 300px; height: 60px; background: var(--ButtonColour);
+    .Pause_Menu_Button { position: absolute; left: 30px; width: 300px; height: 60px; background: var(--ButtonColour);
         border-radius: 10px; border: 1px solid var(--ShadowColour); color: var(--ButtonText); font-family: "Bebas Neue", system-ui;
         font-weight: bold; font-style: normal; font-size: 20px;
         transition: all var(--TransitionSpeed) ease-in-out; }
@@ -1465,8 +1619,6 @@ async function drawOpeningHand() {
         font-weight: bold; font-style: normal; font-size: 20px;
         transition: all var(--TransitionSpeed) ease-in-out; }    
     .Pause_Settings_Button:hover { background: var(--ButtonHover); color: var(--ButtonText); width: 210px; }
-
-    .WarningText { position:absolute; color: var(--ButtonText); left: 40px; bottom: 30px;}
 
     /* descriptions */
     .Description { position: fixed; background-color: rgb(12, 14, 16); opacity: 70%; top: 0px; left: 0px; display: none; 
