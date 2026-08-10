@@ -258,20 +258,23 @@ const githubTextureBaseUrl = 'https://raw.githubusercontent.com/Dp2oYT/OverDraw/
 
 // texture loading script for the table
 function loadTableModel(onSuccess, onProgress, onError) {
-    const candidates = [
-        {
-            modelUrl: 'scene/scene.gltf',
-            path: 'scene/',
-            resourcePath: 'scene/',
-            label: 'local'
-        },
-        {
-            modelUrl: githubModelUrl,
-            path: githubTextureBaseUrl,
-            resourcePath: githubTextureBaseUrl,
-            label: 'github'
-        }
-    ];
+    const isGitHubPages = window.location.hostname.endsWith('.github.io') || window.location.hostname === 'dp2oyt.github.io';
+
+    const localCandidate = {
+        modelUrl: 'scene/scene.gltf',
+        path: 'scene/',
+        resourcePath: 'scene/',
+        label: 'local'
+    };
+
+    const githubCandidate = {
+        modelUrl: githubModelUrl,
+        path: '',
+        resourcePath: githubTextureBaseUrl,
+        label: 'github'
+    };
+
+    const candidates = isGitHubPages ? [githubCandidate, localCandidate] : [localCandidate, githubCandidate];
 
     let attemptIndex = 0;
 
@@ -286,8 +289,7 @@ function loadTableModel(onSuccess, onProgress, onError) {
         console.log(`GLTF: attempting load from [${candidate.label}] model:`, candidate.modelUrl);
         console.log(`GLTF: resource path:`, candidate.resourcePath);
 
-        // Do not use setPath for local or remote model URLs when the model URL already contains the path.
-        gltfloader.setPath('');
+        gltfloader.setPath(candidate.path);
         gltfloader.setResourcePath(candidate.resourcePath);
 
         gltfloader.load(
