@@ -249,21 +249,20 @@ const loader = new THREE.TextureLoader();
 const gltfLoadManager = new THREE.LoadingManager();
 const gltfloader = new GLTFLoader(gltfLoadManager);
 
-const localMatcap = './Matcaps/matcap.png';
-const remoteMatcap = 'https://github.com/Dp2oYT/OverDraw/blob/main/Matcaps/matcap.png';
+const localMatcap = new URL('./Matcaps/matcap.png', import.meta.url).href;
+const remoteMatcap = 'https://raw.githubusercontent.com/Dp2oYT/OverDraw/main/Matcaps/matcap.png';
 
 const githubModelUrl = 'https://raw.githubusercontent.com/Dp2oYT/OverDraw/main/scene/scene.gltf';
 const githubTextureBaseUrl = 'https://raw.githubusercontent.com/Dp2oYT/OverDraw/main/scene/';
-
+const localModelUrl = new URL('./scene/scene.gltf', import.meta.url).href;
+const localTextureBaseUrl = new URL('./scene/', import.meta.url).href;
 
 // texture loading script for the table
 function loadTableModel(onSuccess, onProgress, onError) {
-    const isGitHubPages = window.location.hostname.endsWith('.github.io') || window.location.hostname === 'dp2oyt.github.io';
-
     const localCandidate = {
-        modelUrl: 'scene/scene.gltf',
-        path: 'scene/',
-        resourcePath: 'scene/',
+        modelUrl: localModelUrl,
+        path: '',
+        resourcePath: localTextureBaseUrl,
         label: 'local'
     };
 
@@ -274,7 +273,7 @@ function loadTableModel(onSuccess, onProgress, onError) {
         label: 'github'
     };
 
-    const candidates = isGitHubPages ? [githubCandidate, localCandidate] : [localCandidate, githubCandidate];
+    const candidates = [localCandidate, githubCandidate];
 
     let attemptIndex = 0;
 
