@@ -270,17 +270,24 @@ function loadTableModel(onSuccess, onProgress, onError) {
 
         const candidate = candidates[attemptIndex++];
 
+        // Resolve an absolute base URL for both the model path and external resources.
+        // For local candidate we resolve relative to the current page URL to avoid file:// issues.
+        let baseUrl;
         if (candidate.label === 'local') {
-            gltfloader.setPath('scene/');
-            gltfloader.setResourcePath('scene/');
+            baseUrl = new URL(candidate.textureBaseUrl, window.location.href).href;
         } else {
-            gltfloader.setPath(githubTextureBaseUrl);
-            gltfloader.setResourcePath(githubTextureBaseUrl);
+            baseUrl = candidate.textureBaseUrl;
         }
 
+        console.log(`GLTF: attempting load from [${candidate.label}] base:`, baseUrl);
+        gltfloader.setPath(baseUrl);
+        gltfloader.setResourcePath(baseUrl);
+
+        // Use the candidate.modelUrl together with the absolute path set above.
         gltfloader.load(
             candidate.modelUrl,
             (gltf) => {
+                console.log(`GLTF loaded from ${candidate.label}`);
                 if (onSuccess) onSuccess(gltf);
             },
             onProgress,
@@ -581,7 +588,6 @@ function applyAllRenderingSettings() {
     if (storedRatio !== MatchScreenResSelect.value) {
         localStorage.setItem('preferred_ratio', MatchScreenResSelect.value);
     }
-    
 }
 
 playButton.disabled = true;
