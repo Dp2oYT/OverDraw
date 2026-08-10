@@ -246,7 +246,8 @@ import { bloom } from 'three/addons/tsl/display/BloomNode.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 const loader = new THREE.TextureLoader();
-const gltfloader = new GLTFLoader();
+const gltfLoadManager = new THREE.LoadingManager();
+const gltfloader = new GLTFLoader(gltfLoadManager);
 
 const localMatcap = './Matcaps/matcap.png';
 const remoteMatcap = 'https://github.com/Dp2oYT/OverDraw/blob/main/Matcaps/matcap.png';
@@ -257,7 +258,7 @@ const githubTextureBaseUrl = 'https://raw.githubusercontent.com/Dp2oYT/OverDraw/
 function loadTableModel(onSuccess, onProgress, onError) {
     const candidates = [
         { modelUrl: 'scene.gltf', textureBaseUrl: 'scene/', label: 'local' },
-        { modelUrl: 'scene.gltf', textureBaseUrl: githubTextureBaseUrl, label: 'github' }
+        { modelUrl: githubModelUrl, textureBaseUrl: githubTextureBaseUrl, label: 'github' }
     ];
 
     let attemptIndex = 0;
@@ -270,32 +271,38 @@ function loadTableModel(onSuccess, onProgress, onError) {
 
         const candidate = candidates[attemptIndex++];
 
-        // Resolve an absolute base URL for both the model path and external resources.
-        // For local candidate we resolve relative to the current page URL to avoid file:// issues.
-        let baseUrl;
+        console.log(`GLTF: attempting load from [${candidate.label}] model:`, candidate.modelUrl);
+
         if (candidate.label === 'local') {
-            baseUrl = new URL(candidate.textureBaseUrl, window.location.href).href;
+            gltfloader.setPath('scene/');
+            gltfloader.setResourcePath('scene/');
+            gltfloader.load(
+                candidate.modelUrl,
+                (gltf) => {
+                    console.log(`GLTF loaded from ${candidate.label}`);
+                    if (onSuccess) onSuccess(gltf);
+                },
+                onProgress,
+                (error) => {
+                    console.warn(`Failed to load model from ${candidate.label} source`, error);
+                    tryNextModel();
+                }
+            );
         } else {
-            baseUrl = candidate.textureBaseUrl;
+            gltfloader.setResourcePath(githubTextureBaseUrl);
+            gltfloader.load(
+                candidate.modelUrl,
+                (gltf) => {
+                    console.log(`GLTF loaded from ${candidate.label}`);
+                    if (onSuccess) onSuccess(gltf);
+                },
+                onProgress,
+                (error) => {
+                    console.warn(`Failed to load model from ${candidate.label} source`, error);
+                    tryNextModel();
+                }
+            );
         }
-
-        console.log(`GLTF: attempting load from [${candidate.label}] base:`, baseUrl);
-        gltfloader.setPath(baseUrl);
-        gltfloader.setResourcePath(baseUrl);
-
-        // Use the candidate.modelUrl together with the absolute path set above.
-        gltfloader.load(
-            candidate.modelUrl,
-            (gltf) => {
-                console.log(`GLTF loaded from ${candidate.label}`);
-                if (onSuccess) onSuccess(gltf);
-            },
-            onProgress,
-            (error) => {
-                console.warn(`Failed to load model from ${candidate.label} source`, error);
-                tryNextModel();
-            }
-        );
     };
 
     tryNextModel();
