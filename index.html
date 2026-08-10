@@ -290,6 +290,12 @@ function loadTableModel(onSuccess, onProgress, onError) {
 
         gltfloader.setPath(candidate.path);
         gltfloader.setResourcePath(candidate.resourcePath);
+        gltfLoadManager.setURLModifier((url) => {
+            if (/^(https?:|data:|blob:|\/)/i.test(url)) {
+                return url;
+            }
+            return candidate.resourcePath + url;
+        });
 
         gltfloader.load(
             candidate.modelUrl,
