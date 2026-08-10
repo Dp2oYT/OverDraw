@@ -255,15 +255,17 @@ const remoteMatcap = 'https://github.com/Dp2oYT/OverDraw/blob/main/Matcaps/matca
 const githubModelUrl = 'https://raw.githubusercontent.com/Dp2oYT/OverDraw/main/scene/scene.gltf';
 const githubTextureBaseUrl = 'https://raw.githubusercontent.com/Dp2oYT/OverDraw/main/scene/';
 
+
+// texture loading script for the table
 function loadTableModel(onSuccess, onProgress, onError) {
     const candidates = [
         {
-            modelUrl: new URL('scene/scene.gltf', window.location.href).href,
-            resourcePath: new URL('scene/', window.location.href).href,
+            modelUrl: 'scene.gltf',
+            resourcePath: 'scene/',
             label: 'local'
         },
         {
-            modelUrl: githubModelUrl,
+            modelUrl: 'scene.gltf',
             resourcePath: githubTextureBaseUrl,
             label: 'github'
         }
@@ -280,9 +282,15 @@ function loadTableModel(onSuccess, onProgress, onError) {
         const candidate = candidates[attemptIndex++];
 
         console.log(`GLTF: attempting load from [${candidate.label}] model:`, candidate.modelUrl);
+        console.log(`GLTF: using resource path:`, candidate.resourcePath);
 
-        gltfloader.setPath('');
-        gltfloader.setResourcePath(candidate.resourcePath);
+        if (candidate.label === 'local') {
+            gltfloader.setPath('scene/');
+            gltfloader.setResourcePath(candidate.resourcePath);
+        } else {
+            gltfloader.setPath(githubTextureBaseUrl);
+            gltfloader.setResourcePath(candidate.resourcePath);
+        }
 
         gltfloader.load(
             candidate.modelUrl,
