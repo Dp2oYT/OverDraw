@@ -286,16 +286,83 @@ function loadTableModel(onSuccess, onProgress, onError) {
                 throw e;
             }
 
-            if (Array.isArray(json.images)) {
-                for (let img of json.images) {
+            if (Array.isArray(json.images) && json.images.length > 0) {
+                const toDataURL = (url) => fetch(url).then(r => {
+                    if (!r.ok) throw new Error(`Failed to fetch image ${url}: ${r.status}`);
+                    return r.arrayBuffer();
+                }).then(buf => {
+                    let binary = '';
+                    const bytes = new Uint8Array(buf);
+                    const len = bytes.byteLength;
+                    for (let i = 0; i < len; i++) binary += String.fromCharCode(bytes[i]);
+                    const b64 = btoa(binary);
+                    // assume PNG for these assets
+                    return `data:image/png;base64,${b64}`;
+                });
+
+                const promises = json.images.map((img) => {
                     if (img && img.uri && !/^(https?:|data:|blob:|\/)/i.test(img.uri)) {
-                        img.uri = resourcePath + img.uri;
+                        const full = resourcePath + img.uri;
+                        return toDataURL(full).then(dataUri => { img.uri = dataUri; }).catch(err => {
+                            console.warn('Could not inline image', full, err);
+                            // leave uri as absolute path so loader can try
+                            img.uri = full;
+                        });
                     }
-                }
+                    return Promise.resolve();
+                });
+
+                Promise.all(promises).then(() => {
+                    const modified = JSON.stringify(json);
+                    try {
+                        gltfloader.parse(modified, resourcePath, (gltf) => {
+                            console.log(`GLTF parsed from ${label}`);
+                            if (onSuccess) onSuccess(gltf);
+                        }, (err) => {
+                            console.warn(`GLTF parse error for ${label}`, err);
+                            if (label === 'local') {
+                                tryLoad(remoteModelUrl, remoteResourcePath, 'github');
+                            } else {
+                                if (onError) onError(err);
+                            }
+                        });
+                    } catch (e) {
+                        console.warn('GLTFLoader.parse failed', e);
+                        if (label === 'local') {
+                            tryLoad(remoteModelUrl, remoteResourcePath, 'github');
+                        } else {
+                            if (onError) onError(e);
+                        }
+                    }
+                }).catch(err => {
+                    console.warn('Failed to inline images', err);
+                    // fallback: try parsing with absolute/remote urls
+                    const modified = JSON.stringify(json);
+                    try {
+                        gltfloader.parse(modified, resourcePath, (gltf) => {
+                            console.log(`GLTF parsed from ${label}`);
+                            if (onSuccess) onSuccess(gltf);
+                        }, (err) => {
+                            console.warn(`GLTF parse error for ${label}`, err);
+                            if (label === 'local') {
+                                tryLoad(remoteModelUrl, remoteResourcePath, 'github');
+                            } else {
+                                if (onError) onError(err);
+                            }
+                        });
+                    } catch (e) {
+                        console.warn('GLTFLoader.parse failed', e);
+                        if (label === 'local') {
+                            tryLoad(remoteModelUrl, remoteResourcePath, 'github');
+                        } else {
+                            if (onError) onError(e);
+                        }
+                    }
+                });
+                return;
             }
 
             const modified = JSON.stringify(json);
-
             try {
                 gltfloader.parse(modified, resourcePath, (gltf) => {
                     console.log(`GLTF parsed from ${label}`);
