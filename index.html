@@ -259,59 +259,83 @@ const localTextureBaseUrl = new URL('./scene/', import.meta.url).href;
 
 // texture loading script for the table
 function loadTableModel(onSuccess, onProgress, onError) {
-    const localCandidate = {
-        modelUrl: localModelUrl,
-        path: '',
-        resourcePath: localTextureBaseUrl,
-        label: 'local'
-    };
+    const localModelUrlCheck = new URL('scene/scene.gltf', window.location.href).href;
+    const localResourcePath = new URL('scene/', window.location.href).href;
+    const remoteModelUrl = githubModelUrl;
+    const remoteResourcePath = githubTextureBaseUrl;
 
-    const githubCandidate = {
-        modelUrl: githubModelUrl,
-        path: '',
-        resourcePath: githubTextureBaseUrl,
-        label: 'github'
-    };
-
-    const candidates = [localCandidate, githubCandidate];
-
-    let attemptIndex = 0;
-
-    const tryNextModel = () => {
-        if (attemptIndex >= candidates.length) {
-            if (onError) onError(new Error('Failed to load the table model.'));
-            return;
-        }
-
-        const candidate = candidates[attemptIndex++];
-
-        console.log(`GLTF: attempting load from [${candidate.label}] model:`, candidate.modelUrl);
-        console.log(`GLTF: resource path:`, candidate.resourcePath);
-
-        gltfloader.setPath(candidate.path);
-        gltfloader.setResourcePath(candidate.resourcePath);
+    const tryLoad = (modelUrl, resourcePath, label) => {
+        console.log(`GLTF: attempting load from [${label}] model:`, modelUrl);
+        gltfloader.setPath('');
+        gltfloader.setResourcePath(resourcePath);
         gltfLoadManager.setURLModifier((url) => {
-            if (/^(https?:|data:|blob:|\/)/i.test(url)) {
-                return url;
-            }
-            return candidate.resourcePath + url;
+            if (/^(https?:|data:|blob:|\/)/i.test(url)) return url;
+            return resourcePath + url;
         });
 
-        gltfloader.load(
-            candidate.modelUrl,
-            (gltf) => {
-                console.log(`GLTF loaded from ${candidate.label}`);
-                if (onSuccess) onSuccess(gltf);
-            },
-            onProgress,
-            (error) => {
-                console.warn(`Failed to load model from ${candidate.label} source`, error);
-                tryNextModel();
+        // Fetch the glTF JSON, rewrite relative image URIs to absolute resource paths,
+        // then parse via GLTFLoader so external buffers/textures resolve from `resourcePath`.
+        fetch(modelUrl).then(res => {
+            if (!res.ok) throw new Error(`Failed to fetch glTF: ${res.status}`);
+            return res.text();
+        }).then(text => {
+            let json;
+            try {
+                json = JSON.parse(text);
+            } catch (e) {
+                throw e;
             }
-        );
+
+            if (Array.isArray(json.images)) {
+                for (let img of json.images) {
+                    if (img && img.uri && !/^(https?:|data:|blob:|\/)/i.test(img.uri)) {
+                        img.uri = resourcePath + img.uri;
+                    }
+                }
+            }
+
+            const modified = JSON.stringify(json);
+
+            try {
+                gltfloader.parse(modified, resourcePath, (gltf) => {
+                    console.log(`GLTF parsed from ${label}`);
+                    if (onSuccess) onSuccess(gltf);
+                }, (err) => {
+                    console.warn(`GLTF parse error for ${label}`, err);
+                    if (label === 'local') {
+                        tryLoad(remoteModelUrl, remoteResourcePath, 'github');
+                    } else {
+                        if (onError) onError(err);
+                    }
+                });
+            } catch (e) {
+                console.warn('GLTFLoader.parse failed', e);
+                if (label === 'local') {
+                    tryLoad(remoteModelUrl, remoteResourcePath, 'github');
+                } else {
+                    if (onError) onError(e);
+                }
+            }
+        }).catch(err => {
+            console.warn(`Failed to fetch/parse glTF for ${label}`, err);
+            if (label === 'local') {
+                tryLoad(remoteModelUrl, remoteResourcePath, 'github');
+            } else {
+                if (onError) onError(err);
+            }
+        });
     };
 
-    tryNextModel();
+    // Check whether the local model file exists; prefer it if available, otherwise fall back to GitHub raw.
+    fetch(localModelUrlCheck, { method: 'HEAD' }).then(resp => {
+        if (resp.ok) {
+            tryLoad(localModelUrlCheck, localResourcePath, 'local');
+        } else {
+            tryLoad(remoteModelUrl, remoteResourcePath, 'github');
+        }
+    }).catch(() => {
+        tryLoad(remoteModelUrl, remoteResourcePath, 'github');
+    });
 }
 
 // settings
