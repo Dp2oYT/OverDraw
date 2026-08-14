@@ -28,6 +28,9 @@
         const settingsButton = document.getElementById("SettingsButton");
         const CreditsButton = document.getElementById("CreditsButton");
 
+        // Console
+        const Console = document.getElementById("Console");
+
         playButton.disabled = true;
 
         // OVERDRAW title
@@ -253,7 +256,7 @@ const localMatcap = new URL('./Matcaps/matcap.png', import.meta.url).href;
 const remoteMatcap = 'https://raw.githubusercontent.com/Dp2oYT/OverDraw/main/Matcaps/matcap.png';
 
 const githubModelUrl = 'https://raw.githubusercontent.com/Dp2oYT/OverDraw/main/scene/scene.gltf';
-const githubTextureBaseUrl = 'https://raw.githubusercontent.com/Dp2oYT/OverDraw/main/scene/';
+const githubTextureBaseUrl = 'https://raw.githubusercontent.com/Dp2oYT/OverDraw/main/scene/textures/';
 const localModelUrl = new URL('./scene/scene.gltf', import.meta.url).href;
 const localTextureBaseUrl = new URL('./scene/', import.meta.url).href;
 
@@ -1496,6 +1499,10 @@ async function drawOpeningHand() {
 
     <!--fps counter-->
     <p style="color: white; position: absolute; top: -5px; right: 10px;" id="fps">0</p>
+
+    <div id="Console" Class="Console">
+        <div id="ConsoleLine" Class="ConsoleLine"></div>
+    </div>
     
     
     <div class="Setting-Menu"> <!--Settings-->
@@ -1639,7 +1646,7 @@ async function drawOpeningHand() {
     }
 
     /* background */
-    body { margin: 0; background-color: var(--Background); }
+    body { position: fixed; overflow: hidden; margin: 0; background-color: var(--Background); }
 
     /* scroll bar */
 
@@ -1653,6 +1660,31 @@ async function drawOpeningHand() {
 
     ::-webkit-scrollbar-thumb {
         background: #888;
+    }
+
+    /* Console */
+    .Console {
+        position: absolute;
+        transition: transform 0.5s ease-in-out;
+        width: 500px;
+        height: 400px;
+        right: 10px;
+        bottom: -380px;
+        display: inline-block;
+        background-color: black;
+    }
+
+    .ConsoleLine {
+        position: absolute;
+        top: 7px;
+        width: 470px;
+        height: 2px;
+        Right: 15px;
+        background-color: #888;
+    }
+
+    .Console:hover {
+        background-color: #181818;
     }
 
 
