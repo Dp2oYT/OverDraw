@@ -256,157 +256,158 @@ const localMatcap = new URL('./Matcaps/matcap.png', import.meta.url).href;
 const remoteMatcap = 'https://raw.githubusercontent.com/Dp2oYT/OverDraw/main/Matcaps/matcap.png';
 
 const githubModelUrl = 'https://raw.githubusercontent.com/Dp2oYT/OverDraw/main/scene/scene.gltf';
-const githubTextureBaseUrl = 'https://raw.githubusercontent.com/Dp2oYT/OverDraw/main/scene/textures/';
+const githubTextureBaseUrl = 'https://raw.githubusercontent.com/Dp2oYT/OverDraw/main/scene/';
 const localModelUrl = new URL('./scene/scene.gltf', import.meta.url).href;
 const localTextureBaseUrl = new URL('./scene/', import.meta.url).href;
 
 // texture loading script for the table
-function loadTableModel(onSuccess, onProgress, onError) {
-    const localModelUrlCheck = new URL('scene/scene.gltf', window.location.href).href;
-    const localResourcePath = new URL('scene/', window.location.href).href;
-    const remoteModelUrl = githubModelUrl;
-    const remoteResourcePath = githubTextureBaseUrl;
-
-    const tryLoad = (modelUrl, resourcePath, label) => {
-        console.log(`GLTF: attempting load from [${label}] model:`, modelUrl);
-        gltfloader.setPath('');
-        gltfloader.setResourcePath(resourcePath);
-        gltfLoadManager.setURLModifier((url) => {
-            if (/^(https?:|data:|blob:|\/)/i.test(url)) return url;
-            return resourcePath + url;
-        });
-
-        // Fetch the glTF JSON, rewrite relative image URIs to absolute resource paths,
-        // then parse via GLTFLoader so external buffers/textures resolve from `resourcePath`.
-        fetch(modelUrl).then(res => {
-            if (!res.ok) throw new Error(`Failed to fetch glTF: ${res.status}`);
-            return res.text();
-        }).then(text => {
-            let json;
-            try {
-                json = JSON.parse(text);
-            } catch (e) {
-                throw e;
-            }
-
-            if (Array.isArray(json.images) && json.images.length > 0) {
-                const toDataURL = (url) => fetch(url).then(r => {
-                    if (!r.ok) throw new Error(`Failed to fetch image ${url}: ${r.status}`);
-                    return r.arrayBuffer();
-                }).then(buf => {
-                    let binary = '';
-                    const bytes = new Uint8Array(buf);
-                    const len = bytes.byteLength;
-                    for (let i = 0; i < len; i++) binary += String.fromCharCode(bytes[i]);
-                    const b64 = btoa(binary);
-                    // assume PNG for these assets
-                    return `data:image/png;base64,${b64}`;
-                });
-
-                const promises = json.images.map((img) => {
-                    if (img && img.uri && !/^(https?:|data:|blob:|\/)/i.test(img.uri)) {
-                        const full = resourcePath + img.uri;
-                        return toDataURL(full).then(dataUri => { img.uri = dataUri; }).catch(err => {
-                            console.warn('Could not inline image', full, err);
-                            // leave uri as absolute path so loader can try
-                            img.uri = full;
-                        });
-                    }
-                    return Promise.resolve();
-                });
-
-                Promise.all(promises).then(() => {
-                    const modified = JSON.stringify(json);
-                    try {
-                        gltfloader.parse(modified, resourcePath, (gltf) => {
-                            console.log(`GLTF parsed from ${label}`);
-                            if (onSuccess) onSuccess(gltf);
-                        }, (err) => {
-                            console.warn(`GLTF parse error for ${label}`, err);
-                            if (label === 'local') {
-                                tryLoad(remoteModelUrl, remoteResourcePath, 'github');
-                            } else {
-                                if (onError) onError(err);
-                            }
-                        });
-                    } catch (e) {
-                        console.warn('GLTFLoader.parse failed', e);
-                        if (label === 'local') {
-                            tryLoad(remoteModelUrl, remoteResourcePath, 'github');
-                        } else {
-                            if (onError) onError(e);
-                        }
-                    }
-                }).catch(err => {
-                    console.warn('Failed to inline images', err);
-                    // fallback: try parsing with absolute/remote urls
-                    const modified = JSON.stringify(json);
-                    try {
-                        gltfloader.parse(modified, resourcePath, (gltf) => {
-                            console.log(`GLTF parsed from ${label}`);
-                            if (onSuccess) onSuccess(gltf);
-                        }, (err) => {
-                            console.warn(`GLTF parse error for ${label}`, err);
-                            if (label === 'local') {
-                                tryLoad(remoteModelUrl, remoteResourcePath, 'github');
-                            } else {
-                                if (onError) onError(err);
-                            }
-                        });
-                    } catch (e) {
-                        console.warn('GLTFLoader.parse failed', e);
-                        if (label === 'local') {
-                            tryLoad(remoteModelUrl, remoteResourcePath, 'github');
-                        } else {
-                            if (onError) onError(e);
-                        }
-                    }
-                });
-                return;
-            }
-
-            const modified = JSON.stringify(json);
-            try {
-                gltfloader.parse(modified, resourcePath, (gltf) => {
-                    console.log(`GLTF parsed from ${label}`);
-                    if (onSuccess) onSuccess(gltf);
-                }, (err) => {
-                    console.warn(`GLTF parse error for ${label}`, err);
-                    if (label === 'local') {
-                        tryLoad(remoteModelUrl, remoteResourcePath, 'github');
-                    } else {
-                        if (onError) onError(err);
-                    }
-                });
-            } catch (e) {
-                console.warn('GLTFLoader.parse failed', e);
-                if (label === 'local') {
-                    tryLoad(remoteModelUrl, remoteResourcePath, 'github');
-                } else {
-                    if (onError) onError(e);
-                }
-            }
-        }).catch(err => {
-            console.warn(`Failed to fetch/parse glTF for ${label}`, err);
-            if (label === 'local') {
-                tryLoad(remoteModelUrl, remoteResourcePath, 'github');
-            } else {
-                if (onError) onError(err);
-            }
-        });
+async function loadTableModel(onLoad, onProgress, onError) {
+    const urls = {
+        baseColor: 'https://raw.githubusercontent.com/Dp2oYT/OverDraw/refs/heads/main/scene/textures/iron_table_baseColor.txt',
+        metallicRoughness: 'https://raw.githubusercontent.com/Dp2oYT/OverDraw/refs/heads/main/scene/textures/iron_table_metallicRoughness.txt',
+        normal: 'https://raw.githubusercontent.com/Dp2oYT/OverDraw/refs/heads/main/scene/textures/iron_table_normal.txt'
     };
 
-    // Check whether the local model file exists; prefer it if available, otherwise fall back to GitHub raw.
-    fetch(localModelUrlCheck, { method: 'HEAD' }).then(resp => {
-        if (resp.ok) {
-            tryLoad(localModelUrlCheck, localResourcePath, 'local');
-        } else {
-            tryLoad(remoteModelUrl, remoteResourcePath, 'github');
-        }
-    }).catch(() => {
-        tryLoad(remoteModelUrl, remoteResourcePath, 'github');
+    async function fetchBase64(url) {
+        const resp = await fetch(url);
+        if (!resp.ok) throw new Error(`Failed to fetch ${url}: ${resp.status}`);
+        const txt = await resp.text();
+        return txt.replace(/\s+/g, '');
+    }
+
+    function toDataURL(base64) {
+        return 'data:image/png;base64,' + base64;
+    }
+
+    const loadGLTF = (url) => new Promise((resolve, reject) => {
+        gltfloader.load(url, (gltf) => resolve(gltf), onProgress, (err) => reject(err));
     });
+
+    let gltf;
+    try {
+        try {
+            gltf = await loadGLTF(localModelUrl);
+        } catch (localErr) {
+            // fallback to remote
+            gltf = await loadGLTF(githubModelUrl);
+        }
+    } catch (err) {
+        console.error('Failed to load GLTF model from both local and remote', err);
+        if (onError) onError(err);
+        return;
+    }
+
+    // Try to fetch and apply base64 textures, but don't fail loading if textures unavailable
+    try {
+        const [baseB64, mrB64, normalB64] = await Promise.all([
+            fetchBase64(urls.baseColor),
+            fetchBase64(urls.metallicRoughness),
+            fetchBase64(urls.normal)
+        ]);
+
+                const baseTex = loader.load(toDataURL(baseB64), (tex) => {
+                    tex.flipY = false;
+                    tex.encoding = THREE.sRGBEncoding;
+                    tex.generateMipmaps = true;
+                    tex.minFilter = THREE.LinearMipmapLinearFilter;
+                    tex.magFilter = THREE.LinearFilter;
+                    tex.needsUpdate = true;
+                });
+                const mrTex = loader.load(toDataURL(mrB64), (tex) => {
+                    tex.flipY = false;
+                    tex.encoding = THREE.LinearEncoding;
+                    tex.generateMipmaps = true;
+                    tex.minFilter = THREE.LinearMipmapLinearFilter;
+                    tex.magFilter = THREE.LinearFilter;
+                    tex.needsUpdate = true;
+                });
+                const normalTex = loader.load(toDataURL(normalB64), (tex) => {
+                    tex.flipY = false;
+                    tex.encoding = THREE.LinearEncoding;
+                    tex.generateMipmaps = true;
+                    tex.minFilter = THREE.LinearMipmapLinearFilter;
+                    tex.magFilter = THREE.LinearFilter;
+                    tex.needsUpdate = true;
+                });
+
+        // Collect materials info for debugging
+        const materialsInfo = [];
+        gltf.scene.traverse((node) => {
+            if (!node.isMesh) return;
+            const mats = Array.isArray(node.material) ? node.material : [node.material];
+            mats.forEach((mat) => {
+                if (!mat) return;
+                materialsInfo.push({ nodeName: node.name || '(noname)', materialName: mat.name || '(noname)', type: mat.type, isStd: !!mat.isMeshStandardMaterial, isPhys: !!mat.isMeshPhysicalMaterial });
+            });
+        });
+        console.log('loadTableModel: discovered materials', JSON.stringify(materialsInfo, null, 2));
+
+        // Try to apply to materials that look like the table first
+        let applied = [];
+        gltf.scene.traverse((node) => {
+            if (!node.isMesh) return;
+            const mats = Array.isArray(node.material) ? node.material : [node.material];
+            mats.forEach((mat) => {
+                if (!mat) return;
+                const name = (mat.name || '').toLowerCase();
+                const looksLikeTable = name.includes('table') || name.includes('iron') || (node.name || '').toLowerCase().includes('table');
+                if (!looksLikeTable) return;
+                if (!(mat.isMeshStandardMaterial || mat.isMeshPhysicalMaterial)) return;
+                try {
+                    if ('map' in mat) mat.map = baseTex;
+                    if ('metalnessMap' in mat) mat.metalnessMap = mrTex;
+                    if ('roughnessMap' in mat) mat.roughnessMap = mrTex;
+                    if ('normalMap' in mat) mat.normalMap = normalTex;
+                    if (mat.map) mat.map.encoding = THREE.sRGBEncoding;
+                    mat.needsUpdate = true;
+                    applied.push({ node: node.name || '(noname)', material: mat.name || '(noname)' });
+                } catch (e) {
+                    // ignore
+                }
+            });
+        });
+
+        if (applied.length === 0) {
+            // Fallback: apply to first available standard/physical material
+            gltf.scene.traverse((node) => {
+                if (!node.isMesh) return;
+                const mats = Array.isArray(node.material) ? node.material : [node.material];
+                for (const mat of mats) {
+                    if (!mat) continue;
+                    if (mat.isMeshStandardMaterial || mat.isMeshPhysicalMaterial) {
+                        try {
+                            if ('map' in mat) mat.map = baseTex;
+                            if ('metalnessMap' in mat) mat.metalnessMap = mrTex;
+                            if ('roughnessMap' in mat) mat.roughnessMap = mrTex;
+                            if ('normalMap' in mat) mat.normalMap = normalTex;
+                            if (mat.map) mat.map.encoding = THREE.sRGBEncoding;
+                            // Tune PBR values to produce a darker metal look
+                            if ('metalness' in mat) mat.metalness = 0.9;
+                            if ('roughness' in mat) mat.roughness = 0.4;
+                            if ('normalScale' in mat) mat.normalScale = new THREE.Vector2(1, 1);
+                            try {
+                                if (mat.color && typeof mat.color.multiplyScalar === 'function') mat.color.multiplyScalar(0.6);
+                            } catch (e) {}
+                            if ('envMapIntensity' in mat) mat.envMapIntensity = 0.7;
+                            mat.needsUpdate = true;
+                            applied.push({ node: node.name || '(noname)', material: mat.name || '(noname)', fallback: true });
+                            break;
+                        } catch (e) {
+                            // ignore
+                        }
+                    }
+                }
+                if (applied.length > 0) return;
+            });
+        }
+        console.log('loadTableModel: textures applied to', JSON.stringify(applied, null, 2));
+    } catch (texErr) {
+        console.warn('Could not fetch/apply base64 textures:', texErr);
+    }
+
+    if (onLoad) onLoad(gltf);
 }
+
 
 // settings
 let Difficulty = 3;
